@@ -22,13 +22,18 @@ module.exports = class CSV
 
 	getStats: -> @_stats
 	getColumns: -> @_columns
-	getRow: (i) -> @_rows[i]
+	getRow: (i) ->
+		i = @getRowCount() + i if i < 0
+		return null unless @_rows[i]?
+		return @_rows[i]
 	getRows: -> @_rows
 	getRowCount: -> @_rows.length
 	getObject: (i) ->
+		row = @getRow(i)
+		return null unless row?
 		ob = {}
 		for column, j in @_columns
-			ob[column] = @_rows[i][j]
+			ob[column] = row[j] if row[j]?
 		return ob
 	getObjects: -> (@getObject(i) for i in [0...@getRowCount()])
 
