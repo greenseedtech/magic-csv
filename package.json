@@ -1,0 +1,27 @@
+{
+  "name": "magic-csv",
+  "version": "1.0.0",
+  "description": "A robust CSV parser",
+  "main": "lib/csv.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/greenseedtechnologies/magic-csv.git"
+  },
+  "keywords": [
+    "csv",
+    "tsv",
+    "tab",
+    "txt",
+    "parser",
+    "parse"
+  ],
+  "author": "Steve Keiser <me@stevekeiser.com> (http://stevekeiser.com)",
+  "license": "BSD",
+  "bugs": {
+    "url": "https://github.com/greenseedtechnologies/magic-csv/issues"
+  },
+  "homepage": "https://github.com/greenseedtechnologies/magic-csv"
+}
