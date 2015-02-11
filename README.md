@@ -1,6 +1,6 @@
 # magic-csv
 
-__magic-csv__ is an automagic CSV parser designed to handle *whatever* you throw at it
+magic-csv is an automagic CSV parser designed to handle *whatever* you throw at it
 
 ```javascript
 MagicCSV = require("magic-csv");
@@ -26,6 +26,7 @@ csv.parse(data, function(err, stats){
 
 __Options__
 ```javascript
+// passed to MagicCSV at instantiation
 {
   trim: true, // trim values
   exclude_bad_rows: false, // drop rows that don't line up with column heading
@@ -34,8 +35,9 @@ __Options__
 }
 ```
 
-__Stats Object__
+__Stats__
 ```javascript
+// example object returned by csv.getStats()
 {
   line_ending: 'Unix', // Windows, Unix, Mac
   delimiter: 'Comma', // Comma, Tab, Pipe
