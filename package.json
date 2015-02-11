@@ -4,7 +4,8 @@
   "description": "Robust CSV parser with format detection",
   "main": "lib/csv.js",
   "scripts": {
-    "test": "echo \"Error: test harness has not been made public\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "compile": "coffee --no-header -cbo lib src/csv.coffee"
   },
   "repository": {
     "type": "git",
