@@ -50,7 +50,6 @@ module.exports = class CSV
 
 	parse: (data, callback) ->
 		return callback('Expected string, got ' + typeof data) unless typeof data is 'string'
-		data = data.trim()
 		@_init()
 
 		# column name generator
@@ -63,16 +62,16 @@ module.exports = class CSV
 				return col_name unless col_name in @_columns
 
 		# detect line ending
-		ending_counts = {'CRLF': 0}
-		ending_types = {'\r\n': 'CRLF', '\n': 'LF', '\r': 'CR'}
-		for ending, name of ending_types
-			count = data.match(new RegExp(ending, 'g'))?.length
-			ending_counts[name] = (count ? 0) - ending_counts.CRLF
-		# console.log ending_counts
-		line_ending = '\n'
-		line_ending = '\r' if ending_counts.CR > ending_counts.LF
-		line_ending = '\r\n' if ending_counts.CRLF > ending_counts.LF
-		@_stats.line_ending = ending_types[line_ending]
+		data = data.trim()
+		min_index = null
+		for name, ending of {'CRLF': '\r\n', 'LF': '\n', 'CR': '\r'}
+			i = data.indexOf(ending)
+			if i > 0 and (not min_index? or i < min_index)
+				min_index = i
+				line_ending = ending
+				@_stats.line_ending = name
+		newline_flag = '{{{magic-csv}}}'
+		data = data.replace(/\r\n/g, newline_flag) unless line_ending is '\r\n'
 		data = data.split(line_ending)
 		return callback('Line ending detection failed') unless data.length > 1
 		cols = data.shift().trim()
@@ -117,6 +116,9 @@ module.exports = class CSV
 			for val, i in row
 				start = false
 				end = false
+				val = val
+					.replace(/\r/g, '\n')
+					.replace(new RegExp(newline_flag, 'g'), '\n')
 				v = val.trim()
 				if not seek and (v.match(/^"/)? and not v.match(/^""[^"]/)?) and (not v.match(/"$/)? or v.match(/[^"]""$/)?) and not v.match(/[^"]{3}"[^"]{3}/)?
 					start = true
@@ -132,9 +134,8 @@ module.exports = class CSV
 					else starts.push i
 					seek = not seek
 				quoted = v.match(/^"/)? and v.match(/"$/)?
-				val = val.replace(/^"/, '') if start or quoted
-				val = val.replace(/"[\r|\n]*$/, '') if end or quoted
-				val = val.replace(/\r/g, '\n') if line_ending is '\r\n'
+				val = val.replace(/^[\n]*"/, '') if start or quoted
+				val = val.replace(/"[\n]*$/, '') if end or quoted
 				row[i] = val
 
 			# join quoted fields
