@@ -87,7 +87,7 @@ module.exports = class CSV
 		delimiter = '|' if char_counts.comma < char_counts.pipe > char_counts.tab
 		cols = cols.split(delimiter)
 		return callback('Delimiter detection failed') unless cols.length > 1 or @settings.allow_single_column is true
-		@_stats.delimiter = delimiter_types[delimiter]
+		@_stats.delimiter = if cols.length is 1 then 'none' else delimiter_types[delimiter]
 		cols.pop() while cols[cols.length - 1] is ''
 		col_count = cols.length
 		@_columns = cols
@@ -109,6 +109,7 @@ module.exports = class CSV
 		for line, line_index in data
 
 			# parse row
+			continue if line.trim() is ''
 			row = line.split(delimiter)
 			starts = []
 			ends = []

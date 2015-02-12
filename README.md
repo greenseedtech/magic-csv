@@ -40,7 +40,7 @@ __Stats__
 // example object returned by csv.getStats()
 {
   line_ending: 'LF', // LF, CR, CRLF
-  delimiter: 'comma', // comma, tab, pipe
+  delimiter: 'comma', // comma, tab, pipe, none
   row_count: 1893,
   bad_row_indexes: [234, 759], // rows where column shifting may have occurred
   valid_column_count: 13, // column names found

@@ -5,7 +5,7 @@
   "main": "lib/csv.js",
   "scripts": {
     "pretest": "coffee --no-header -cbo lib src/csv.coffee",
-    "test": "coffee tests/run.coffee"
+    "test": "coffee tests/test.coffee"
   },
   "repository": {
     "type": "git",
