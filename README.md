@@ -39,8 +39,8 @@ __Stats__
 ```javascript
 // example object returned by csv.getStats()
 {
-  line_ending: 'Unix', // Windows, Unix, Mac
-  delimiter: 'Comma', // Comma, Tab, Pipe
+  line_ending: 'LF', // LF, CR, CRLF
+  delimiter: 'comma', // comma, tab, pipe
   row_count: 1893,
   bad_row_indexes: [234, 759], // rows where column shifting may have occurred
   valid_column_count: 13, // column names found

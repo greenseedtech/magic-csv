@@ -50,6 +50,7 @@ module.exports = class CSV
 
 	parse: (data, callback) ->
 		return callback('Expected string, got ' + typeof data) unless typeof data is 'string'
+		data = data.trim()
 		@_init()
 
 		# column name generator
@@ -62,32 +63,31 @@ module.exports = class CSV
 				return col_name unless col_name in @_columns
 
 		# detect line ending
-		line_ending = '\n'
-		ending_count = 0
-		data = data.trim()
-		for name, ending of {'Windows': '\r\n', 'Unix': '\n', 'Mac': '\r'}
+		ending_counts = {'CRLF': 0}
+		ending_types = {'\r\n': 'CRLF', '\n': 'LF', '\r': 'CR'}
+		for ending, name of ending_types
 			count = data.match(new RegExp(ending, 'g'))?.length
-			if count > ending_count
-				ending_count = count
-				line_ending = ending
-				@_stats.line_ending = name
+			ending_counts[name] = (count ? 0) - ending_counts.CRLF
+		# console.log ending_counts
+		line_ending = '\n'
+		line_ending = '\r' if ending_counts.CR > ending_counts.LF
+		line_ending = '\r\n' if ending_counts.CRLF > ending_counts.LF
+		@_stats.line_ending = ending_types[line_ending]
 		data = data.split(line_ending)
 		return callback('Line ending detection failed') unless data.length > 1
 		cols = data.shift().trim()
 
 		# detect delimiter
-		char_count = {}
-		for type, char of {commas: ',', pipes: '|', tabs: '\t'}
-			char_count[type] = (cols + '').split(char).length - 1
+		char_counts = {}
+		delimiter_types = {',': 'comma', '|': 'pipe', '\t': 'tab'}
+		for char, name of delimiter_types
+			char_counts[name] = cols.split(char).length - 1
 		delimiter = '\t'
-		delimiter = ',' if char_count.commas > char_count.tabs
-		delimiter = '|' if char_count.commas < char_count.pipes > char_count.tabs
+		delimiter = ',' if char_counts.comma > char_counts.tab
+		delimiter = '|' if char_counts.comma < char_counts.pipe > char_counts.tab
 		cols = cols.split(delimiter)
 		return callback('Delimiter detection failed') unless cols.length > 1 or @settings.allow_single_column is true
-		@_stats.delimiter = switch delimiter
-			when ',' then 'Comma'
-			when '|' then 'Pipe'
-			when '\t' then 'Tab'
+		@_stats.delimiter = delimiter_types[delimiter]
 		cols.pop() while cols[cols.length - 1] is ''
 		col_count = cols.length
 		@_columns = cols
@@ -132,7 +132,8 @@ module.exports = class CSV
 					seek = not seek
 				quoted = v.match(/^"/)? and v.match(/"$/)?
 				val = val.replace(/^"/, '') if start or quoted
-				val = val.replace(/"$/, '') if end or quoted
+				val = val.replace(/"[\r|\n]*$/, '') if end or quoted
+				val = val.replace(/\r/g, '\n') if line_ending is '\r\n'
 				row[i] = val
 
 			# join quoted fields
