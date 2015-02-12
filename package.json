@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/greenseedtechnologies/magic-csv.git"
+    "url": "https://github.com/greenseedtech/magic-csv.git"
   },
   "keywords": [
     "csv",
@@ -22,9 +22,9 @@
   "author": "Steve Keiser <me@stevekeiser.com> (http://stevekeiser.com)",
   "license": "BSD",
   "bugs": {
-    "url": "https://github.com/greenseedtechnologies/magic-csv/issues"
+    "url": "https://github.com/greenseedtech/magic-csv/issues"
   },
-  "homepage": "https://github.com/greenseedtechnologies/magic-csv",
+  "homepage": "https://github.com/greenseedtech/magic-csv",
   "devDependencies": {
     "async": "~0.9.0",
     "coffee-script": "~1.8.0"
