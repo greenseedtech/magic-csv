@@ -20,7 +20,7 @@ csv.readFile("example.csv", function(err, stats) {
 
 // raw data example
 csv.parse(data, function(err, stats) {
-  console.log(stats);
+  // csv.whatever()
 });
 ```
 
