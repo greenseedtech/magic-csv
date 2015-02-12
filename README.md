@@ -19,14 +19,14 @@ csv.readFile("example.csv", function(err, stats) {
 });
 
 // raw data example
-csv.parse(data, function(err, stats){
+csv.parse(data, function(err, stats) {
   console.log(stats);
 });
 ```
 
 __Options__
 ```javascript
-// passed to MagicCSV at instantiation
+// passed to MagicCSV at instantiation (defaults shown)
 {
   trim: true, // trim values
   exclude_bad_rows: false, // drop rows that don't line up with column heading
@@ -44,8 +44,8 @@ __Stats__
   row_count: 1893,
   bad_row_indexes: [234, 759], // rows where column shifting may have occurred
   valid_column_count: 13, // column names found
-  blank_column_count: 2, // empty column names
-  added_column_count: 1, // happens when rows split into more fields then there are columns
+  blank_column_count: 2, // blank column names repaired
+  added_column_count: 1, // happens when a row splits into more fields then there are columns
   total_column_count: 14
 }
 ```
