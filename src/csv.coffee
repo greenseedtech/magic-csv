@@ -49,6 +49,7 @@ module.exports = class CSV
 					callback?(err, stats)
 
 	parse: (data, callback) ->
+		return callback('Expected string, got ' + typeof data) unless typeof data is 'string'
 		@_init()
 
 		# column name generator

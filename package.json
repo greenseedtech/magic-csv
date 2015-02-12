@@ -4,8 +4,8 @@
   "description": "Robust CSV parser with format detection",
   "main": "lib/csv.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "compile": "coffee --no-header -cbo lib src/csv.coffee"
+    "pretest": "coffee --no-header -cbo lib src/csv.coffee",
+    "test": "coffee tests/run.coffee"
   },
   "repository": {
     "type": "git",
