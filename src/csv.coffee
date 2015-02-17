@@ -128,6 +128,7 @@ module.exports = class CSV
 
 		# parse rows
 		bad_rows = []
+		field_count = 0
 		min_field_count = null
 		max_field_count = 0
 		for line, line_index in data
@@ -145,7 +146,7 @@ module.exports = class CSV
 					.replace(/\r/g, '\n')
 					.replace(new RegExp(newline_flag, 'g'), '\n')
 				v = val.trim()
-				if not seek and (v.match(/^"/)? and not v.match(/^""[^"]/)?) and (not v.match(/"$/)? or v.match(/[^"]""$/)?) and not v.match(/[^"]{3}"[^"]{3}/)?
+				if not seek and (v.match(/^"/)? and not v.match(/^""[^"]/)?) and (not v.match(/"$/)? or v.match(/[^"]""$/)?) and not v.match(/[^"]{1}"[^"]{1}/)?
 					start = true
 					seek = true
 					starts.push i
@@ -162,6 +163,11 @@ module.exports = class CSV
 				val = val.replace(/^[\n]*"/, '') if start or quoted
 				val = val.replace(/"[\n]*$/, '') if end or quoted
 				row[i] = val
+
+			# find terminator
+			if seek and row.length isnt field_count
+				data[line_index + 1] = line + newline_flag + data[line_index + 1] if data[line_index + 1]?
+				continue
 
 			# join quoted fields
 			if starts.length > 0
@@ -194,6 +200,11 @@ module.exports = class CSV
 				@_rows.push row
 				min_field_count = row.length if not max_field_count? or row.length < min_field_count
 				max_field_count = row.length if row.length > max_field_count
+				if @_rows.length <= 3
+					counts = []
+					for row in @_rows
+						counts.push row.length unless row.length in counts
+					field_count = counts[0] if counts.length is 1
 
 		# handle bad rows
 		cols.push getNextColumnName() while max_field_count > cols.length
