@@ -1,7 +1,9 @@
 # magic-csv
 
 magic-csv is an automagic CSV parser designed to handle *whatever* you throw at it
-
+<br>
+<br>
+__Usage__
 ```javascript
 MagicCSV = require("magic-csv");
 
@@ -23,7 +25,7 @@ csv.parse(data, function(err, stats) {
   // csv.whatever()
 });
 ```
-
+<br>
 __Options__
 ```javascript
 // passed to MagicCSV at instantiation (defaults shown)
@@ -34,7 +36,7 @@ __Options__
   unknown_column_name: 'Unknown' // the name to use when columns are empty or created
 }
 ```
-
+<br>
 __Stats__
 ```javascript
 // example object returned by csv.getStats()
@@ -49,3 +51,7 @@ __Stats__
   total_column_count: 14
 }
 ```
+<br>
+__Notes__
+* Files without column headings are not yet supported
+* If you notice incorrect parsing, please submit an issue!
