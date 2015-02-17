@@ -4,6 +4,7 @@
   "description": "Robust CSV parser with format detection",
   "main": "lib/csv.js",
   "scripts": {
+    "watch": "coffee --no-header -wcbo lib src/csv.coffee",
     "pretest": "coffee --no-header -cbo lib src/csv.coffee",
     "test": "coffee tests/test.coffee"
   },

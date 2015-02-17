@@ -11,8 +11,8 @@ module.exports = class CSV
 		@_columns = []
 		@_rows = []
 		@_stats =
-			line_ending: 'Unknown'
-			delimiter: 'Unknown'
+			line_ending: 'unknown'
+			delimiter: 'unknown'
 			row_count: 0
 			bad_row_indexes: []
 			valid_column_count: 0
@@ -36,6 +36,31 @@ module.exports = class CSV
 			ob[column] = row[j] if row[j]?
 		return ob
 	getObjects: -> (@getObject(i) for i in [0...@getRowCount()])
+
+	readObjects: (obs, callback) ->
+		list = if obs.constructor is Object then [obs] else obs
+		return callback('Invalid input') unless obs[0]?.constructor is Object
+		@_init()
+		for ob in obs
+			row = []
+			for key, val of ob
+				@_columns.push key unless key in @_columns
+				row[@_columns.indexOf(key)] = val
+			@_rows.push row
+		@_stats.row_count = @_rows.length
+		@_stats.valid_column_count = @_columns.length
+		@_stats.total_column_count = @_columns.length
+		callback(null, @_stats)
+
+	toString: ->
+		data = @_columns.join(',')
+		data += '\n' + row.join(',') for row in @_rows
+		return data
+
+	writeToStream: (stream, callback) ->
+		stream.write @toString(), ->
+			stream.end null, ->
+				callback?()
 
 	readFile: (path, callback) ->
 		data = ''
