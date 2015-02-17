@@ -37,24 +37,13 @@ module.exports = class CSV
 		return ob
 	getObjects: -> (@getObject(i) for i in [0...@getRowCount()])
 
-	readObjects: (obs, callback) ->
-		list = if obs.constructor is Object then [obs] else obs
-		return callback('Invalid input') unless obs[0]?.constructor is Object
-		@_init()
-		for ob in obs
-			row = []
-			for key, val of ob
-				@_columns.push key unless key in @_columns
-				row[@_columns.indexOf(key)] = val
-			@_rows.push row
-		@_stats.row_count = @_rows.length
-		@_stats.valid_column_count = @_columns.length
-		@_stats.total_column_count = @_columns.length
-		callback(null, @_stats)
-
 	toString: ->
-		data = @_columns.join(',')
-		data += '\n' + row.join(',') for row in @_rows
+		data = '"' + @_columns.join('","') + '"'
+		for row in @_rows
+			line = '\n"'
+			for val in row
+				line += val.replace(/\n/g, '\r').replace(/"/g, '""') + '","'
+			data += line.slice(0, -2)
 		return data
 
 	writeToStream: (stream, callback) ->
