@@ -6,29 +6,36 @@ magic-csv is an automagic CSV parser designed to handle *whatever* you throw at 
 __Usage__
 ```javascript
 MagicCSV = require("magic-csv");
-
 csv = new MagicCSV({trim: true});
 
 csv.readFile("example.csv", function(err, stats) {
   csv.getColumns(); // ["First Name", "Last Name", "Age"]
-  csv.getRow(0); // ["Betty", "White", "93"]
-  csv.getObject(0); // {"First Name": "Betty", "Last Name": "White", "Age": "93"}
-  csv.getRow(-1); // last row
-  csv.getRows(); // all rows
-  csv.getObjects(); // all objects
+  csv.getRow(0); // ["Jerry", "Seinfeld", "60"]
+  csv.getObject(0); // {"First Name": "Jerry", "Last Name": "Seinfeld", "Age": "60"}
   csv.getStats(); // stats object, detailing how the file was parsed
   csv.getRowCount(); // same as stats.row_count
 });
 
-// raw data example
-csv.parse(data, function(err, stats) {
-  // csv.whatever()
+// array of objects example
+var ob1 = {'First': 'Brian', 'Last': 'Regan', 'Pain': 8};
+var ob2 = {'First': 'Jim', 'Last': 'Gaffigan', 'Foods': ['Hot Pockets', 'Cake']};
+csv.readObjects([ob1, ob2], function(err, stats) {
+  csv.getColumns(); // ["First", "Last", "Pain", "Foods"]
+  csv.getRow(0); // ["Brian", "Regan", "8", ""]
+  csv.getRow(1); // ["Jim", "Gaffigan", "", "Hot Pockets, Cake"]
 });
 
-// output methods
-csv.toString();
+// raw data example
+csv.parse(str, function(err, stats) {
+  csv.getRow(-1); // last row
+  csv.getRows(); // all rows
+  csv.getObjects(); // all objects
+});
+
+// write methods
 csv.writeToStream(stream);
 csv.writeToRes(res, 'out.csv'); // express response
+csv.writeToFile('out.csv', function(err) {});
 ```
 <br>
 __Options__
