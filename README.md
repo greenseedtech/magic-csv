@@ -10,9 +10,9 @@ csv = new MagicCSV({trim: true});
 
 // file example
 csv.readFile("example.csv", function(err, stats) {
-  csv.getColumns(); // ["First Name", "Last Name", "Age"]
-  csv.getRow(0); // ["Jerry", "Seinfeld", "60"]
-  csv.getObject(0); // {"First Name": "Jerry", "Last Name": "Seinfeld", "Age": "60"}
+  csv.getColumns(); // ["First Name", "Last Name"]
+  csv.getRow(0); // ["Jerry", "Seinfeld"]
+  csv.getObject(0); // {"First Name": "Jerry", "Last Name": "Seinfeld"}
   csv.getStats(); // stats object, detailing how the file was parsed
   csv.getRowCount(); // same as stats.row_count
 });
@@ -57,7 +57,7 @@ __Stats__
   line_ending: 'LF', // LF, CR, CRLF
   delimiter: 'comma', // comma, tab, pipe, none
   row_count: 1893,
-  bad_row_indexes: [234, 759], // rows where column shifting may have occurred
+  bad_row_indexes: [234, 759], // column shifting may have occurred here
   valid_column_count: 13, // column names found
   blank_column_count: 2, // blank column names repaired
   added_column_count: 1, // columns added to cover extra fields
