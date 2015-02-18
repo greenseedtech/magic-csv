@@ -49,7 +49,7 @@ __Stats__
   bad_row_indexes: [234, 759], // rows where column shifting may have occurred
   valid_column_count: 13, // column names found
   blank_column_count: 2, // blank column names repaired
-  added_column_count: 1, // happens when a row splits into more fields then there are columns
+  added_column_count: 1, // columns added to cover extra fields
   total_column_count: 14
 }
 ```
