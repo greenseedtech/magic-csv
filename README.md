@@ -8,6 +8,7 @@ __Usage__
 MagicCSV = require("magic-csv");
 csv = new MagicCSV({trim: true});
 
+// file example
 csv.readFile("example.csv", function(err, stats) {
   csv.getColumns(); // ["First Name", "Last Name", "Age"]
   csv.getRow(0); // ["Jerry", "Seinfeld", "60"]
@@ -16,7 +17,7 @@ csv.readFile("example.csv", function(err, stats) {
   csv.getRowCount(); // same as stats.row_count
 });
 
-// array of objects example
+// objects example
 var ob1 = {'First': 'Brian', 'Last': 'Regan', 'Pain': 8};
 var ob2 = {'First': 'Jim', 'Last': 'Gaffigan', 'Foods': ['Hot Pockets', 'Cake']};
 csv.readObjects([ob1, ob2], function(err, stats) {
@@ -25,7 +26,7 @@ csv.readObjects([ob1, ob2], function(err, stats) {
   csv.getRow(1); // ["Jim", "Gaffigan", "", "Hot Pockets, Cake"]
 });
 
-// raw data example
+// raw example
 csv.parse(str, function(err, stats) {
   csv.getRow(-1); // last row
   csv.getRows(); // all rows
@@ -35,7 +36,7 @@ csv.parse(str, function(err, stats) {
 // write methods
 csv.writeToStream(stream);
 csv.writeToRes(res, 'out.csv'); // express response
-csv.writeToFile('out.csv', function(err) {});
+csv.writeToFile('out.csv');
 ```
 <br>
 __Options__
@@ -43,9 +44,9 @@ __Options__
 // passed to MagicCSV at instantiation (defaults shown)
 {
   trim: true, // trim values
-  exclude_bad_rows: false, // drop rows that don't line up with column heading
-  allow_single_column: false, // don't return an error when there is only one column
-  unknown_column_name: 'Unknown' // the name to use when columns are empty or created
+  exclude_bad_rows: false, // drop rows with unknown columns
+  allow_single_column: false, // allow input with only one column
+  unknown_column_name: 'Unknown' // title for created/empty columns
 }
 ```
 <br>
