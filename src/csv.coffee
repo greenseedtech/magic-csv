@@ -11,8 +11,8 @@ module.exports = class CSV
 		@_columns = []
 		@_rows = []
 		@_stats =
-			line_ending: 'Unknown'
-			delimiter: 'Unknown'
+			line_ending: 'unknown'
+			delimiter: 'unknown'
 			row_count: 0
 			bad_row_indexes: []
 			valid_column_count: 0
@@ -36,6 +36,20 @@ module.exports = class CSV
 			ob[column] = row[j] if row[j]?
 		return ob
 	getObjects: -> (@getObject(i) for i in [0...@getRowCount()])
+
+	getCSV: ->
+		data = '"' + @_columns.join('","') + '"'
+		for row in @_rows
+			line = '\n"'
+			for val in row
+				line += val.replace(/\n/g, '\r').replace(/"/g, '""') + '","'
+			data += line.slice(0, -2)
+		return data
+
+	writeToStream: (stream, callback) ->
+		stream.write @getCSV(), ->
+			stream.end null, ->
+				callback?()
 
 	readFile: (path, callback) ->
 		data = ''

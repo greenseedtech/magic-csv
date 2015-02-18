@@ -16,8 +16,10 @@ csv.readFile("example.csv", function(err, stats) {
   csv.getRow(-1); // last row
   csv.getRows(); // all rows
   csv.getObjects(); // all objects
-  csv.getRowCount(); // total number of rows (same as stats.row_count)
-  csv.getStats(); // stats object, info about how the file was parsed
+  csv.getStats(); // stats object, detailing how the file was parsed
+  csv.getRowCount(); // same as stats.row_count
+  csv.getCSV(); // output as CSV
+  csv.writeToStream(res); // write getCSV() to stream
 });
 
 // raw data example
@@ -51,7 +53,3 @@ __Stats__
   total_column_count: 14
 }
 ```
-<br>
-__Notes__
-* Files without column headings are not yet supported
-* If you notice incorrect parsing, please submit an issue!
