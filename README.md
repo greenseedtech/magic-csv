@@ -18,14 +18,17 @@ csv.readFile("example.csv", function(err, stats) {
   csv.getObjects(); // all objects
   csv.getStats(); // stats object, detailing how the file was parsed
   csv.getRowCount(); // same as stats.row_count
-  csv.getCSV(); // output as CSV
-  csv.writeToStream(res); // write getCSV() to stream
 });
 
 // raw data example
 csv.parse(data, function(err, stats) {
   // csv.whatever()
 });
+
+// output methods
+csv.toString();
+csv.writeToStream(stream);
+csv.writeToRes(res, 'out.csv'); // express response
 ```
 <br>
 __Options__

@@ -37,20 +37,6 @@ module.exports = class CSV
 		return ob
 	getObjects: -> (@getObject(i) for i in [0...@getRowCount()])
 
-	getCSV: ->
-		data = '"' + @_columns.join('","') + '"'
-		for row in @_rows
-			line = '\n"'
-			for val in row
-				line += val.replace(/\n/g, '\r').replace(/"/g, '""') + '","'
-			data += line.slice(0, -2)
-		return data
-
-	writeToStream: (stream, callback) ->
-		stream.write @getCSV(), ->
-			stream.end null, ->
-				callback?()
-
 	readFile: (path, callback) ->
 		data = ''
 		stream = require('fs').createReadStream(path)
@@ -62,8 +48,63 @@ module.exports = class CSV
 				@parse data, (err, stats) ->
 					callback?(err, stats)
 
+	toString: ->
+		return '' unless @_columns.length > 0
+		data = '"' + @_columns.join('","') + '"'
+		for row in @_rows
+			line = '\n"'
+			for val in row
+				line += val.replace(/\n/g, '\r').replace(/"/g, '""') + '","'
+			data += line.slice(0, -2)
+		return data
+
+	writeToStream: (stream, callback) ->
+		stream.write @toString(), ->
+			stream.end null, ->
+				callback?()
+
+	writeToRes: (res, filename='data.csv', callback) ->
+		if typeof res.set is 'function'
+			headers =
+				'Content-Type': 'text/csv'
+				'Content-Disposition': "attachment;filename=#{filename}"
+			res.set(headers)
+		@writeToStream(res, callback)
+
+	writeFile: (path, callback) ->
+		require('fs').writeFile path, @toString(), (err) ->
+			callback?(err)
+
+	readObjects: (data, callback) ->
+		return callback('Input was not an array') unless @_isArray(data)
+		return callback("Input at index #{i} was not an object") for ob, i in data when not @_isObject(ob)
+		@_init()
+		for ob, i in data
+			row = []
+			for key, val of ob
+				continue if typeof val is 'function'
+				@_columns.push key unless key in @_columns
+				new_val = ''
+				switch typeof val
+					when 'number', 'string', 'boolean'
+						new_val = val
+					when 'object'
+						switch val.constructor
+							when Object then new_val = JSON.stringify(val)
+							when Array then new_val = val.join(', ')
+							else new_val = if typeof val.toString is 'function' then val.toString() else ''
+				row[@_columns.indexOf(key)] = new_val
+			@_rows.push row
+		for row in @_rows
+			row[i] ?= '' for val, i in row
+			row.push '' while row.length < @_columns.length
+		@_stats.row_count = @_rows.length
+		@_stats.valid_column_count = @_columns.length
+		@_stats.total_column_count = @_columns.length
+		callback(null, @_stats)
+
 	parse: (data, callback) ->
-		return callback('Expected string, got ' + typeof data) unless typeof data is 'string'
+		return callback('Input was not a string') unless typeof data is 'string'
 		@_init()
 
 		# column name generator
@@ -102,7 +143,6 @@ module.exports = class CSV
 		return callback('Delimiter detection failed') unless cols.length > 1 or @settings.allow_single_column is true
 		@_stats.delimiter = if cols.length is 1 then 'none' else delimiter_types[delimiter]
 		cols.pop() while cols[cols.length - 1] is ''
-		col_count = cols.length
 		@_columns = cols
 
 		# detect columns
@@ -111,13 +151,12 @@ module.exports = class CSV
 			if val is ''
 				cols[i] = getNextColumnName()
 			else cols[i] = val
-		return callback('Column names not found') if generated_col_count / col_count >= .5
-		@_stats.valid_column_count = col_count
+		return callback('Column names not found') if generated_col_count / cols.length >= .5
+		@_stats.valid_column_count = cols.length
 		@_stats.blank_column_count = generated_col_count
 
 		# parse rows
 		bad_rows = []
-		field_count = 0
 		min_field_count = null
 		max_field_count = 0
 		for line, line_index in data
@@ -154,7 +193,7 @@ module.exports = class CSV
 				row[i] = val
 
 			# find terminator
-			if seek and row.length isnt field_count
+			if seek and row.length isnt cols.length
 				data[line_index + 1] = line + newline_flag + data[line_index + 1] if data[line_index + 1]?
 				continue
 
@@ -172,14 +211,14 @@ module.exports = class CSV
 
 			# finalize row
 			row[i] = val.replace(/""/g, '"') for val, i in row
-			row.pop() while row.length > col_count and row[row.length - 1] is ''
-			row.push '' while row.length < col_count
+			row.pop() while row.length > cols.length and row[row.length - 1] is ''
+			row.push '' while row.length < cols.length
 			if @settings.trim is true
 				row[i] = val.trim() for val, i in row
 
 			# handle bad row
 			allow_row = true
-			if row.length > col_count
+			if row.length > cols.length
 				bad_rows.push row
 				@_stats.bad_row_indexes.push line_index
 				allow_row = false if @settings.exclude_bad_rows is true
@@ -189,15 +228,10 @@ module.exports = class CSV
 				@_rows.push row
 				min_field_count = row.length if not max_field_count? or row.length < min_field_count
 				max_field_count = row.length if row.length > max_field_count
-				if @_rows.length <= 3
-					counts = []
-					for row in @_rows
-						counts.push row.length unless row.length in counts
-					field_count = counts[0] if counts.length is 1
 
 		# handle bad rows
 		cols.push getNextColumnName() while max_field_count > cols.length
-		return callback('Too many unknown columns') if generated_col_count / col_count >= .5
+		return callback('Too many unknown columns') if generated_col_count / cols.length >= .5
 		if bad_rows.length is @_rows.length
 			@_stats.bad_row_indexes.length = 0
 			@_rows = bad_rows if @settings.exclude_bad_rows is true
@@ -210,3 +244,6 @@ module.exports = class CSV
 		@_stats.total_column_count = cols.length
 		@_stats.row_count = @_rows.length
 		callback(null, @_stats)
+
+	_isArray: (v) -> typeof v is 'object' and v.constructor is Array
+	_isObject: (v) -> typeof v is 'object' and v.constructor is Object

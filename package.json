@@ -1,10 +1,9 @@
 {
   "name": "magic-csv",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "Robust CSV parser with format detection",
   "main": "lib/csv.js",
   "scripts": {
-    "watch": "coffee --no-header -wcbo lib src/csv.coffee",
     "pretest": "coffee --no-header -cbo lib src/csv.coffee",
     "test": "coffee tests/test.coffee"
   },
@@ -17,8 +16,8 @@
     "tsv",
     "tab",
     "txt",
-    "parser",
-    "parse"
+    "parse",
+    "parser"
   ],
   "author": "Steve Keiser <me@stevekeiser.com> (http://stevekeiser.com)",
   "license": "BSD",
