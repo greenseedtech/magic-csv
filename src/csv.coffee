@@ -85,8 +85,7 @@ module.exports = class CSV
 				continue if typeof val is 'function'
 				@_columns.push key unless key in @_columns
 				new_val = ''
-				if @_isObject(val) then new_val = JSON.stringify(val)
-				else if @_isArray(val) then new_val = val.join(', ')
+				if @_isObject(val) or @_isArray(val) then new_val = JSON.stringify(val)
 				else if typeof val.toString is 'function' then new_val = val.toString()
 				row[@_columns.indexOf(key)] = new_val
 			@_rows.push row

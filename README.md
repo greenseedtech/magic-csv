@@ -10,9 +10,9 @@ csv = new MagicCSV({trim: true});
 
 // file example
 csv.readFile("example.csv", function(err, stats) {
-  csv.getColumns(); // ["First Name", "Last Name"]
-  csv.getRow(0); // ["Jerry", "Seinfeld"]
-  csv.getObject(0); // {"First Name": "Jerry", "Last Name": "Seinfeld"}
+  csv.getColumns(); // ['First Name', 'Last Name']
+  csv.getRow(0); // ['Jerry', 'Seinfeld']
+  csv.getObject(0); // {'First Name': 'Jerry', 'Last Name': 'Seinfeld'}
   csv.getStats(); // stats object, detailing how the file was parsed
   csv.getRowCount(); // same as stats.row_count
 });
@@ -21,9 +21,9 @@ csv.readFile("example.csv", function(err, stats) {
 var ob1 = {'First': 'Brian', 'Last': 'Regan', 'Pain': 8};
 var ob2 = {'First': 'Jim', 'Last': 'Gaffigan', 'Foods': ['Hot Pockets', 'Cake']};
 csv.readObjects([ob1, ob2], function(err, stats) {
-  csv.getColumns(); // ["First", "Last", "Pain", "Foods"]
-  csv.getRow(0); // ["Brian", "Regan", "8", ""]
-  csv.getRow(1); // ["Jim", "Gaffigan", "", "Hot Pockets, Cake"]
+  csv.getColumns(); // ['First', 'Last', 'Pain', 'Foods']
+  csv.getRow(0); // ['Brian', 'Regan', '8', '']
+  csv.getRow(1); // ['Jim', 'Gaffigan', '', '["Hot Pockets","Cake"]']
 });
 
 // raw example
