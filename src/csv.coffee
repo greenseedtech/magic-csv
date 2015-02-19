@@ -21,13 +21,28 @@ module.exports = class CSV
 			total_column_count: 0
 
 	getStats: -> @_stats
+	getColCount: -> @_columns.length
+	getRowCount: -> @_rows.length
+
 	getColumns: -> @_columns
+	getColumn: (i) ->
+		return null unless typeof i in ['number', 'string']
+		if typeof i is 'string'
+			i = @_columns.indexOf(i)
+			return null unless i > -1
+		i = @getColCount() + i if i < 0
+		col = []
+		col.push row[i] for row in @_rows
+		return col
+
+	getRows: -> @_rows
 	getRow: (i) ->
+		return null unless typeof i is 'number'
 		i = @getRowCount() + i if i < 0
 		return null unless @_rows[i]?
 		return @_rows[i]
-	getRows: -> @_rows
-	getRowCount: -> @_rows.length
+
+	getObjects: -> (@getObject(i) for i in [0...@getRowCount()])
 	getObject: (i) ->
 		row = @getRow(i)
 		return null unless row?
@@ -35,18 +50,6 @@ module.exports = class CSV
 		for column, j in @_columns
 			ob[column] = row[j] if row[j]?
 		return ob
-	getObjects: -> (@getObject(i) for i in [0...@getRowCount()])
-
-	readFile: (path, callback) ->
-		data = ''
-		stream = require('fs').createReadStream(path)
-			.on 'data', (chunk) ->
-				data += chunk
-			.on 'error', (err) ->
-				callback?(err)
-			.on 'end', =>
-				@parse data, (err, stats) ->
-					callback?(err, stats)
 
 	toString: ->
 		return '' unless @_columns.length > 0
@@ -71,27 +74,62 @@ module.exports = class CSV
 			res.set(headers)
 		@writeToStream(res, callback)
 
+	readFile: (path, callback) ->
+		data = ''
+		stream = require('fs').createReadStream(path)
+			.on 'data', (chunk) ->
+				data += chunk
+			.on 'error', (err) ->
+				callback?(err)
+			.on 'end', =>
+				@parse data, (err, stats) ->
+					callback?(err, stats)
+
 	writeToFile: (path, callback) ->
 		require('fs').writeFile path, @toString(), (err) ->
 			callback?(err)
 
 	readObjects: (data, callback) ->
-		return callback('Input was not an array') unless @_isArray(data)
+		return callback('Input was not an array of objects') unless @_isArray(data) and data.length > 0
 		return callback("Input at index #{i} was not an object") for ob, i in data when not @_isObject(ob)
 		@_init()
-		for ob, i in data
+
+		# column index finder
+		bestIndex = (vals, val) =>
+			return 0 if @_columns.length is 0
+			if val.length > 2
+				for i in [(val.length - 2)..2]
+					regex = new RegExp('^' + val.substr(0, i))
+					for val, j in @_columns.slice().reverse()
+						return -j if val.match(regex)?
+			for val, i in vals.slice().reverse()
+				continue if val in @_columns
+				return -i
+
+		# build columns
+		@_columns = Object.keys(data[0])
+		for ob in data
+			keys = Object.keys(ob)
+			for col in keys
+				continue if col in @_columns
+				@_columns.splice(bestIndex(keys, col), 0, col)
+
+		# build rows
+		for ob in data
 			row = []
 			for key, val of ob
-				continue if typeof val is 'function'
-				@_columns.push key unless key in @_columns
 				new_val = ''
 				if @_isObject(val) or @_isArray(val) then new_val = JSON.stringify(val)
 				else if typeof val.toString is 'function' then new_val = val.toString()
 				row[@_columns.indexOf(key)] = new_val
 			@_rows.push row
+
+		# finalize rows
 		for row in @_rows
 			row[i] ?= '' for val, i in row
 			row.push '' while row.length < @_columns.length
+
+		# stats
 		@_stats.row_count = @_rows.length
 		@_stats.valid_column_count = @_columns.length
 		@_stats.total_column_count = @_columns.length
