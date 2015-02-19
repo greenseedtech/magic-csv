@@ -95,16 +95,15 @@ module.exports = class CSV
 		@_init()
 
 		# column index finder
-		bestIndex = (vals, val) =>
+		bestIndex = (cols, col) =>
 			return 0 if @_columns.length is 0
-			if val.length > 2
-				for i in [(val.length - 2)..2]
-					regex = new RegExp('^' + val.substr(0, i))
-					for val, j in @_columns.slice().reverse()
-						return -j if val.match(regex)?
-			for val, i in vals.slice().reverse()
-				continue if val in @_columns
-				return -i
+			if col.length > 2
+				for len in [(col.length - 2)..2]
+					regex = new RegExp('^' + col.substr(0, len))
+					for col, i in @_columns.slice().reverse()
+						return -i if col.match(regex)?
+			for col, i in cols.slice().reverse()
+				return -i unless col in @_columns
 
 		# build columns
 		@_columns = Object.keys(data[0])
