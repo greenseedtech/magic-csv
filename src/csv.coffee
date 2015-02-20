@@ -4,9 +4,9 @@ module.exports = class CSV
 		@_init()
 		@settings.trim ?= true
 		@settings.drop_bad_rows ?= false
-		@settings.drop_empty_columns ?= false
-		@settings.allow_single_column ?= false
-		@settings.unknown_column_name ?= 'Unknown'
+		@settings.drop_empty_cols ?= false
+		@settings.allow_single_col ?= false
+		@settings.default_col_name ?= 'Unknown'
 
 	_init: ->
 		@_columns = []
@@ -14,24 +14,24 @@ module.exports = class CSV
 		@_stats =
 			line_ending: 'unknown'
 			delimiter: 'unknown'
+			col_count: null
 			row_count: null
 			bad_row_indexes: []
-			valid_column_count: null
-			blank_column_count: null
-			added_column_count: null
-			total_column_count: null
+			valid_col_count: null
+			blank_col_count: null
+			added_col_count: null
 
 	getStats: -> @_stats
-	getColumnCount: -> @_columns.length
+	getColCount: -> @_columns.length
 	getRowCount: -> @_rows.length
 
-	getColumns: -> @_columns
-	getColumn: (i) ->
+	getCols: -> @_columns
+	getCol: (i) ->
 		return null unless typeof i in ['number', 'string']
 		if typeof i is 'string'
 			i = @_columns.indexOf(i)
 			return null unless i > -1
-		i = @getColumnCount() + i if i < 0
+		i = @getColCount() + i if i < 0
 		col = []
 		col.push row[i] for row in @_rows
 		return col
@@ -81,18 +81,19 @@ module.exports = class CSV
 			.on 'data', (chunk) ->
 				data += chunk
 			.on 'error', (err) ->
-				callback?(err)
+				callback?(@_err('Unable to read ' + path, 'READ'))
 			.on 'end', =>
 				@parse data, (err, stats) ->
 					callback?(err, stats)
 
 	writeToFile: (path, callback) ->
 		require('fs').writeFile path, @toString(), (err) ->
-			callback?(err)
+			return callback?(@_err('Unable to write ' + path, 'WRITE')) if err?
+			callback?()
 
 	readObjects: (data, callback) ->
-		return callback('Input was not an array of objects') unless @_isArray(data) and data.length > 0
-		return callback("Input at index #{i} was not an object") for ob, i in data when not @_isObject(ob)
+		return callback(@_err('Input was not an array of objects', 'INPUT')) unless @_isArray(data) and data.length > 0
+		return callback(@_err("Input at index #{i} was not an object", 'INPUT')) for ob, i in data when not @_isObject(ob)
 		@_init()
 
 		# column index finder
@@ -131,7 +132,7 @@ module.exports = class CSV
 		callback(null, @_stats)
 
 	parse: (data, callback) ->
-		return callback('Input was not a string') unless typeof data is 'string'
+		return callback(@_err('Input was not a string', 'INPUT')) unless typeof data is 'string'
 		@_init()
 
 		# column name generator
@@ -140,7 +141,7 @@ module.exports = class CSV
 			generated_col_count++
 			i = 1
 			loop
-				col_name = "#{@settings.unknown_column_name} #{i++}"
+				col_name = "#{@settings.default_col_name} #{i++}"
 				return col_name unless col_name in @_columns
 
 		# detect line ending
@@ -155,7 +156,7 @@ module.exports = class CSV
 		newline_flag = '{{{magic-csv}}}'
 		data = data.replace(/\r\n/g, newline_flag) unless line_ending is '\r\n'
 		data = data.split(line_ending)
-		return callback('Line ending detection failed') unless data.length > 1
+		return callback(@_err('Line ending detection failed', 'NO_ROWS')) unless data.length > 1
 		cols = data.shift().trim()
 
 		# detect delimiter
@@ -167,8 +168,8 @@ module.exports = class CSV
 		delimiter = ',' if char_counts.comma > char_counts.tab
 		delimiter = '|' if char_counts.comma < char_counts.pipe > char_counts.tab
 		cols = cols.split(delimiter)
-		return callback('Delimiter detection failed') unless cols.length > 1 or @settings.allow_single_column is true
-		@_stats.delimiter = if cols.length is 1 then 'none' else delimiter_types[delimiter]
+		return callback(@_err('Delimiter detection failed', 'NO_DELIM')) unless cols.length > 1 or @settings.allow_single_col is true
+		@_stats.delimiter = if cols.length is 1 then 'n/a' else delimiter_types[delimiter]
 		cols.pop() while cols[cols.length - 1] is ''
 		@_columns = cols
 
@@ -178,9 +179,9 @@ module.exports = class CSV
 			if val is ''
 				cols[i] = getNextColumnName()
 			else cols[i] = val
-		return callback('Column names not found') if generated_col_count / cols.length >= .5
-		@_stats.valid_column_count = cols.length
-		@_stats.blank_column_count = generated_col_count
+		return callback(@_err('Column names not found', 'NO_COLS')) if generated_col_count / cols.length >= .5
+		@_stats.valid_col_count = cols.length
+		@_stats.blank_col_count = generated_col_count
 
 		# parse rows
 		bad_rows = []
@@ -254,7 +255,7 @@ module.exports = class CSV
 
 		# handle bad rows
 		cols.push getNextColumnName() while max_field_count > cols.length
-		return callback('Too many unknown columns') if generated_col_count / cols.length >= .5
+		return callback(@_err('Too many unknown columns', 'PARSE')) if generated_col_count / cols.length >= .5
 		if bad_rows.length is @_rows.length
 			@_stats.bad_row_indexes.length = 0
 			@_rows = bad_rows if @settings.drop_bad_rows is true
@@ -264,11 +265,17 @@ module.exports = class CSV
 
 		# finalize
 		@_finalize()
-		@_stats.added_column_count = generated_col_count - @_stats.blank_column_count
+		@_stats.added_col_count = generated_col_count - @_stats.blank_col_count
 		callback(null, @_stats)
 
 	_isArray: (v) -> typeof v is 'object' and v.constructor is Array
 	_isObject: (v) -> typeof v is 'object' and v.constructor is Object
+
+	_err: (msg, code) ->
+		@_finalize()
+		e = new Error(msg)
+		e.code = code if code?
+		return e
 
 	_finalize: ->
 
@@ -279,10 +286,10 @@ module.exports = class CSV
 				row[i] = val
 			row.push '' while row.length < @_columns.length
 
-		if @settings.drop_empty_columns is true
+		if @settings.drop_empty_cols is true
 			indexes = []
 			for col, i in @_columns
-				vals = @getColumn(i)
+				vals = @getCol(i)
 				empty = true
 				for val in vals
 					if val.trim() isnt ''
@@ -295,8 +302,8 @@ module.exports = class CSV
 				for row in @_rows
 					row.splice(i, 1) for i in indexes
 
+		@_stats.col_count ?= @_columns.length
 		@_stats.row_count ?= @_rows.length
-		@_stats.valid_column_count ?= @_columns.length
-		@_stats.blank_column_count ?= 0
-		@_stats.added_column_count ?= 0
-		@_stats.total_column_count ?= @_columns.length
+		@_stats.valid_col_count ?= @_columns.length
+		@_stats.blank_col_count ?= 0
+		@_stats.added_col_count ?= 0
