@@ -32,6 +32,7 @@ csv.parse(str, function(err, stats) {
   csv.getRow(-1); // last row
   csv.getRows(); // all rows
   csv.getObjects(); // all objects
+  csv.getColumnCount(); // same as stats.total_column_count
 });
 
 // write methods
@@ -48,7 +49,7 @@ __Options__
   drop_bad_rows: false, // drop rows with extra fields
   drop_empty_columns: false, // drop columns with no data
   allow_single_column: false, // allow input with only one column
-  unknown_column_name: 'Unknown' // name for created or empty columns
+  unknown_column_name: 'Unknown' // default generated column name
 }
 ```
 <br>
