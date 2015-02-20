@@ -3,7 +3,8 @@ module.exports = class CSV
 	constructor: (@settings={}) ->
 		@_init()
 		@settings.trim ?= true
-		@settings.exclude_bad_rows ?= false
+		@settings.drop_bad_rows ?= false
+		@settings.drop_empty_columns ?= false
 		@settings.allow_single_column ?= false
 		@settings.unknown_column_name ?= 'Unknown'
 
@@ -13,15 +14,15 @@ module.exports = class CSV
 		@_stats =
 			line_ending: 'unknown'
 			delimiter: 'unknown'
-			row_count: 0
+			row_count: null
 			bad_row_indexes: []
-			valid_column_count: 0
-			blank_column_count: 0
-			added_column_count: 0
-			total_column_count: 0
+			valid_column_count: null
+			blank_column_count: null
+			added_column_count: null
+			total_column_count: null
 
 	getStats: -> @_stats
-	getColCount: -> @_columns.length
+	getColumnCount: -> @_columns.length
 	getRowCount: -> @_rows.length
 
 	getColumns: -> @_columns
@@ -30,7 +31,7 @@ module.exports = class CSV
 		if typeof i is 'string'
 			i = @_columns.indexOf(i)
 			return null unless i > -1
-		i = @getColCount() + i if i < 0
+		i = @getColumnCount() + i if i < 0
 		col = []
 		col.push row[i] for row in @_rows
 		return col
@@ -123,18 +124,10 @@ module.exports = class CSV
 				row[@_columns.indexOf(key)] = new_val
 			@_rows.push row
 
-		# finalize rows
-		for row in @_rows
-			for val, i in row
-				val ?= ''
-				val = val.trim() if @settings.trim is true
-				row[i] = val
-			row.push '' while row.length < @_columns.length
-
-		# stats
-		@_stats.row_count = @_rows.length
-		@_stats.valid_column_count = @_columns.length
-		@_stats.total_column_count = @_columns.length
+		# finalize
+		@_finalize()
+		@_stats.line_ending = 'n/a'
+		@_stats.delimiter = 'n/a'
 		callback(null, @_stats)
 
 	parse: (data, callback) ->
@@ -241,22 +234,17 @@ module.exports = class CSV
 					new_row.push row[j] for j in [index...start_index]
 					index = end_index + 1
 					new_row.push row.slice(start_index, end_index + 1).join(delimiter)
-				for j in [index...row.length]
-					new_row.push row[j] if row[j]?
+				for i in [index...row.length]
+					new_row.push row[i] if row[i]?
 				row = new_row
-
-			# finalize row
 			row[i] = val.replace(/""/g, '"') for val, i in row
-			row.push '' while row.length < cols.length
-			if @settings.trim is true
-				row[i] = val.trim() for val, i in row
 
 			# handle bad row
 			allow_row = true
 			if row.length > cols.length
 				bad_rows.push row
 				@_stats.bad_row_indexes.push line_index
-				allow_row = false if @settings.exclude_bad_rows is true
+				allow_row = false if @settings.drop_bad_rows is true
 
 			# add row
 			if allow_row
@@ -269,16 +257,46 @@ module.exports = class CSV
 		return callback('Too many unknown columns') if generated_col_count / cols.length >= .5
 		if bad_rows.length is @_rows.length
 			@_stats.bad_row_indexes.length = 0
-			@_rows = bad_rows if @settings.exclude_bad_rows is true
-		if @settings.exclude_bad_rows isnt true and max_field_count > min_field_count
+			@_rows = bad_rows if @settings.drop_bad_rows is true
+		if @settings.drop_bad_rows isnt true and max_field_count > min_field_count
 			for row in @_rows
 				row.push '' while row.length < max_field_count
 
-		# stats
+		# finalize
+		@_finalize()
 		@_stats.added_column_count = generated_col_count - @_stats.blank_column_count
-		@_stats.total_column_count = cols.length
-		@_stats.row_count = @_rows.length
 		callback(null, @_stats)
 
 	_isArray: (v) -> typeof v is 'object' and v.constructor is Array
 	_isObject: (v) -> typeof v is 'object' and v.constructor is Object
+
+	_finalize: ->
+
+		for row in @_rows
+			for val, i in row
+				val ?= ''
+				val = val.trim() if @settings.trim is true
+				row[i] = val
+			row.push '' while row.length < @_columns.length
+
+		if @settings.drop_empty_columns is true
+			indexes = []
+			for col, i in @_columns
+				vals = @getColumn(i)
+				empty = true
+				for val in vals
+					if val.trim() isnt ''
+						empty = false
+						break
+				indexes.push i if empty
+			if indexes.length > 0
+				indexes = indexes.reverse()
+				@_columns.splice(i, 1) for i in indexes
+				for row in @_rows
+					row.splice(i, 1) for i in indexes
+
+		@_stats.row_count ?= @_rows.length
+		@_stats.valid_column_count ?= @_columns.length
+		@_stats.blank_column_count ?= 0
+		@_stats.added_column_count ?= 0
+		@_stats.total_column_count ?= @_columns.length

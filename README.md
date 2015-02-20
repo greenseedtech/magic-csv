@@ -45,9 +45,10 @@ __Options__
 // passed to MagicCSV at instantiation (defaults shown)
 {
   trim: true, // trim values
-  exclude_bad_rows: false, // drop rows with unknown columns
+  drop_bad_rows: false, // drop rows with extra fields
+  drop_empty_columns: false, // drop columns with no data
   allow_single_column: false, // allow input with only one column
-  unknown_column_name: 'Unknown' // title for created/empty columns
+  unknown_column_name: 'Unknown' // name for created or empty columns
 }
 ```
 <br>
