@@ -227,6 +227,7 @@ module.exports = class CSV
 				row[i] = val
 
 			# find terminator
+			row.pop() while row.length > cols.length and row[row.length - 1] is ''
 			if seek and row.length isnt cols.length
 				data[line_index + 1] = line + newline_flag + data[line_index + 1] if data[line_index + 1]?
 				continue
@@ -240,12 +241,12 @@ module.exports = class CSV
 					new_row.push row[j] for j in [index...start_index]
 					index = end_index + 1
 					new_row.push row.slice(start_index, end_index + 1).join(delimiter)
-				new_row.push row[j] for j in [index...row.length]
+				for j in [index...row.length]
+					new_row.push row[j] if row[j]?
 				row = new_row
 
 			# finalize row
 			row[i] = val.replace(/""/g, '"') for val, i in row
-			row.pop() while row.length > cols.length and row[row.length - 1] is ''
 			row.push '' while row.length < cols.length
 			if @settings.trim is true
 				row[i] = val.trim() for val, i in row
