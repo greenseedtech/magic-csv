@@ -125,7 +125,10 @@ module.exports = class CSV
 
 		# finalize rows
 		for row in @_rows
-			row[i] ?= '' for val, i in row
+			for val, i in row
+				val ?= ''
+				val.trim() if @settings.trim is true
+				row[i] = val
 			row.push '' while row.length < @_columns.length
 
 		# stats
