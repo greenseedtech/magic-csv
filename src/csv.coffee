@@ -16,12 +16,13 @@ module.exports = class CSV
 			delimiter: 'unknown'
 			col_count: null
 			row_count: null
-			cols_dropped: 0
-			rows_dropped: 0
+			empty_cols: []
 			bad_row_indexes: []
 			valid_col_count: null
 			blank_col_count: null
 			added_col_count: null
+			dropped_col_count: 0
+			dropped_row_count: 0
 
 	getStats: -> @_stats
 	getColCount: -> @_columns.length
@@ -254,14 +255,14 @@ module.exports = class CSV
 				@_rows.push row
 				min_field_count = row.length if not max_field_count? or row.length < min_field_count
 				max_field_count = row.length if row.length > max_field_count
-			else @_stats.rows_dropped++
+			else @_stats.dropped_row_count++
 
 		# handle bad rows
 		cols.push getNextColumnName() while max_field_count > cols.length
 		return callback(@_err('Column shifting detected', 'PARSE')) if generated_col_count / cols.length >= .5
 		if bad_rows.length is @_rows.length
 			@_stats.bad_row_indexes.length = 0
-			@_stats.rows_dropped = 0
+			@_stats.dropped_row_count = 0
 			@_rows = bad_rows if @settings.drop_bad_rows is true
 		if @settings.drop_bad_rows isnt true and max_field_count > min_field_count
 			for row in @_rows
@@ -290,22 +291,24 @@ module.exports = class CSV
 				row[i] = val
 			row.push '' while row.length < @_columns.length
 
-		if @settings.drop_empty_cols is true
-			indexes = []
-			for col, i in @_columns
-				vals = @getCol(i)
-				empty = true
-				for val in vals
-					if val.trim() isnt ''
-						empty = false
-						break
-				indexes.push i if empty
-			if indexes.length > 0
-				@_stats.cols_dropped = indexes.length
-				indexes = indexes.reverse()
-				@_columns.splice(i, 1) for i in indexes
-				for row in @_rows
-					row.splice(i, 1) for i in indexes
+		indexes = []
+		for col, i in @_columns
+			vals = @getCol(i)
+			empty = true
+			for val in vals
+				if val.trim() isnt ''
+					empty = false
+					break
+			if empty
+				indexes.push i
+				@_stats.empty_cols.push col
+
+		if @settings.drop_empty_cols is true and indexes.length > 0
+			@_stats.dropped_col_count = indexes.length
+			indexes = indexes.reverse()
+			@_columns.splice(i, 1) for i in indexes
+			for row in @_rows
+				row.splice(i, 1) for i in indexes
 
 		@_stats.col_count ?= @_columns.length
 		@_stats.row_count ?= @_rows.length

@@ -61,12 +61,13 @@ __Stats__
   delimiter: 'comma', // comma, tab, pipe, n/a, unknown
   col_count: 14,
   row_count: 1893,
-  cols_dropped: 0,
-  rows_dropped: 2,
+  empty_cols: ['Middle Name'],
   bad_row_indexes: [234, 759], // column shifting may have occurred here
   valid_col_count: 13, // column names found
   blank_col_count: 2, // blank column names repaired
-  added_col_count: 1 // columns added to cover extra fields
+  added_col_count: 1, // columns added to cover extra fields
+  dropped_col_count: 0,
+  dropped_row_count: 2
 }
 ```
 <br>

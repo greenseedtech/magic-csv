@@ -1,3 +1,8 @@
+## 4.3.0
+- Added stat `empty_cols`
+- Renamed stat `cols_dropped` to `dropped_col_count`
+- Renamed stat `rows_dropped` to `dropped_row_count`
+
 ## 4.2.0
 - Added stat `cols_dropped`
 - Added stat `rows_dropped`
