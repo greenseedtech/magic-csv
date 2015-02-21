@@ -261,8 +261,9 @@ module.exports = class CSV
 		cols.push getNextColumnName() while max_field_count > cols.length
 		return callback(@_err('Column shifting detected', 'PARSE')) if generated_col_count / cols.length >= .5
 		if bad_rows.length is @_rows.length
-			@_stats.bad_row_indexes.length = 0
 			@_stats.dropped_row_count = 0
+			@_stats.bad_row_indexes.length = 0
+			@_stats.blank_col_count = generated_col_count
 			@_rows = bad_rows if @settings.drop_bad_rows is true
 		if @settings.drop_bad_rows isnt true and max_field_count > min_field_count
 			for row in @_rows
