@@ -61,6 +61,8 @@ __Stats__
   delimiter: 'comma', // comma, tab, pipe, n/a, unknown
   col_count: 14,
   row_count: 1893,
+  cols_dropped: 0,
+  rows_dropped: 2,
   bad_row_indexes: [234, 759], // column shifting may have occurred here
   valid_col_count: 13, // column names found
   blank_col_count: 2, // blank column names repaired

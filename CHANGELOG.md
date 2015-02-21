@@ -1,3 +1,7 @@
+## 4.2.0
+- Added stat `cols_dropped`
+- Added stat `rows_dropped`
+
 ## 4.1.0
 - Bug fix for read/write errors
 - Consolidated error codes into PARSE

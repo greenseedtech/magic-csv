@@ -16,6 +16,8 @@ module.exports = class CSV
 			delimiter: 'unknown'
 			col_count: null
 			row_count: null
+			cols_dropped: 0
+			rows_dropped: 0
 			bad_row_indexes: []
 			valid_col_count: null
 			blank_col_count: null
@@ -252,12 +254,14 @@ module.exports = class CSV
 				@_rows.push row
 				min_field_count = row.length if not max_field_count? or row.length < min_field_count
 				max_field_count = row.length if row.length > max_field_count
+			else @_stats.rows_dropped++
 
 		# handle bad rows
 		cols.push getNextColumnName() while max_field_count > cols.length
 		return callback(@_err('Column shifting detected', 'PARSE')) if generated_col_count / cols.length >= .5
 		if bad_rows.length is @_rows.length
 			@_stats.bad_row_indexes.length = 0
+			@_stats.rows_dropped = 0
 			@_rows = bad_rows if @settings.drop_bad_rows is true
 		if @settings.drop_bad_rows isnt true and max_field_count > min_field_count
 			for row in @_rows
@@ -297,6 +301,7 @@ module.exports = class CSV
 						break
 				indexes.push i if empty
 			if indexes.length > 0
+				@_stats.cols_dropped = indexes.length
 				indexes = indexes.reverse()
 				@_columns.splice(i, 1) for i in indexes
 				for row in @_rows
