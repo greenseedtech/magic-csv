@@ -1,3 +1,7 @@
+## 4.1.0
+- Bug fix for read/write errors
+- Consolidated error codes into PARSE
+
 ## 4.0.0
 - `err` is now a legit `Error` object
 - Introduced standard `err.code` values

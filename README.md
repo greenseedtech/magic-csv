@@ -74,6 +74,3 @@ All `err` objects have a `code` property. Possible values are:
 * READ
 * WRITE
 * PARSE
-* NO_ROWS
-* NO_DELIM
-* NO_COLS

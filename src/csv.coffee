@@ -80,14 +80,14 @@ module.exports = class CSV
 		stream = require('fs').createReadStream(path)
 			.on 'data', (chunk) ->
 				data += chunk
-			.on 'error', (err) ->
+			.on 'error', (err) =>
 				callback?(@_err('Unable to read ' + path, 'READ'))
 			.on 'end', =>
 				@parse data, (err, stats) ->
 					callback?(err, stats)
 
 	writeToFile: (path, callback) ->
-		require('fs').writeFile path, @toString(), (err) ->
+		require('fs').writeFile path, @toString(), (err) =>
 			return callback?(@_err('Unable to write ' + path, 'WRITE')) if err?
 			callback?()
 
@@ -156,7 +156,7 @@ module.exports = class CSV
 		newline_flag = '{{{magic-csv}}}'
 		data = data.replace(/\r\n/g, newline_flag) unless line_ending is '\r\n'
 		data = data.split(line_ending)
-		return callback(@_err('Line ending detection failed', 'NO_ROWS')) unless data.length > 1
+		return callback(@_err('Line ending detection failed', 'PARSE')) unless data.length > 1
 		cols = data.shift().trim()
 
 		# detect delimiter
@@ -168,7 +168,7 @@ module.exports = class CSV
 		delimiter = ',' if char_counts.comma > char_counts.tab
 		delimiter = '|' if char_counts.comma < char_counts.pipe > char_counts.tab
 		cols = cols.split(delimiter)
-		return callback(@_err('Delimiter detection failed', 'NO_DELIM')) unless cols.length > 1 or @settings.allow_single_col is true
+		return callback(@_err('Delimiter detection failed', 'PARSE')) unless cols.length > 1 or @settings.allow_single_col is true
 		@_stats.delimiter = if cols.length is 1 then 'n/a' else delimiter_types[delimiter]
 		cols.pop() while cols[cols.length - 1] is ''
 		@_columns = cols
@@ -179,7 +179,7 @@ module.exports = class CSV
 			if val is ''
 				cols[i] = getNextColumnName()
 			else cols[i] = val
-		return callback(@_err('Column names not found', 'NO_COLS')) if generated_col_count / cols.length >= .5
+		return callback(@_err('Column name detection failed', 'PARSE')) if generated_col_count / cols.length >= .5
 		@_stats.valid_col_count = cols.length
 		@_stats.blank_col_count = generated_col_count
 
@@ -255,7 +255,7 @@ module.exports = class CSV
 
 		# handle bad rows
 		cols.push getNextColumnName() while max_field_count > cols.length
-		return callback(@_err('Too many unknown columns', 'PARSE')) if generated_col_count / cols.length >= .5
+		return callback(@_err('Column shifting detected', 'PARSE')) if generated_col_count / cols.length >= .5
 		if bad_rows.length is @_rows.length
 			@_stats.bad_row_indexes.length = 0
 			@_rows = bad_rows if @settings.drop_bad_rows is true
