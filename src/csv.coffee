@@ -294,7 +294,7 @@ module.exports = class CSV
 	_isObject: (v) -> typeof v is 'object' and v.constructor is Object
 	_remove: (v, arrays...) ->
 		for arr in arrays
-			i = arr.indexOf(v)
+			i = if typeof v is 'number' then v else arr.indexOf(v)
 			arr.splice(i, 1) if i > -1
 
 	_err: (msg, code) ->
@@ -345,8 +345,8 @@ module.exports = class CSV
 				@_remove(col, empty_cols, @_blank_cols, dup_cols)
 			else @_stats.dropped_col_count++
 			i = @_columns.indexOf(col)
-			@_columns.splice(i, 1)
-			row.splice(i, 1) for row in @_rows
+			@_remove(i, @_columns)
+			@_remove(i, @_rows...)
 
 		# finalize duplicate columns stat
 		for col, cols of @_stats.duplicate_cols
