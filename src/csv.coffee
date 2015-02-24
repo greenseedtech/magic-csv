@@ -17,13 +17,13 @@ module.exports = class CSV
 			col_count: null
 			row_count: null
 			empty_cols: []
+			duplicate_cols: {}
 			bad_row_indexes: []
 			valid_col_count: null
 			blank_col_count: null
 			added_col_count: null
 			dropped_col_count: 0
 			dropped_row_count: 0
-		@_dup_cols = []
 		@_blank_cols = []
 		@_added_cols = []
 
@@ -178,6 +178,7 @@ module.exports = class CSV
 
 		# detect columns
 		cols_found = []
+		dup_cols = {}
 		for col, i in cols
 			col = col.trim().replace(/^"|"$/g, '').trim()
 			if col is ''
@@ -185,11 +186,14 @@ module.exports = class CSV
 				@_blank_cols.push cols[i]
 			else
 				if col in cols_found
-					@_dup_cols.push col
-					col = getNextColumnName(col)
+					new_col = getNextColumnName(col)
+					dup_cols[col] ?= []
+					dup_cols[col].push new_col
+					col = new_col
 				cols[i] = col
 				cols_found.push col
 		@_stats.valid_col_count = cols_found.length
+		@_stats.duplicate_cols = dup_cols
 		if @_blank_cols.length / cols.length >= .5 and @settings.allow_single_col isnt true
 			return callback(@_err('Column name detection failed', 'PARSE'))
 

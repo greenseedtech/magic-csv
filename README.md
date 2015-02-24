@@ -61,7 +61,8 @@ __Stats__
   delimiter: 'comma', // comma, tab, pipe, n/a, unknown
   col_count: 14,
   row_count: 1893,
-  empty_cols: ['Middle Name'],
+  empty_cols: ['Phone 3'],
+  duplicate_cols: {St: ['St 2']}, // second occurance of St renamed to St 2
   bad_row_indexes: [234, 759], // column shifting may have occurred here
   valid_col_count: 13, // column names found
   blank_col_count: 2, // blank column names repaired
