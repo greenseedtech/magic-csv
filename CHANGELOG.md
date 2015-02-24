@@ -1,3 +1,7 @@
+## 4.6.0
+- Improved duplicate column logic
+  - Non-empty fields shift left
+
 ## 4.5.0
 - Added stat `duplicate_cols`
 
@@ -43,4 +47,4 @@
 
 ## 2.1.0
 - Added `getColCount()` and `getColumn()` methods
-- Intelligent column sorting for `readObjects()`
+- Improved column sorting for `readObjects()`

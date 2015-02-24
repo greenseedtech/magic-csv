@@ -292,6 +292,10 @@ module.exports = class CSV
 
 	_isArray: (v) -> typeof v is 'object' and v.constructor is Array
 	_isObject: (v) -> typeof v is 'object' and v.constructor is Object
+	_remove: (v, arrays...) ->
+		for arr in arrays
+			i = arr.indexOf(v)
+			arr.splice(i, 1) if i > -1
 
 	_err: (msg, code) ->
 		@_finalize()
@@ -301,13 +305,26 @@ module.exports = class CSV
 
 	_finalize: ->
 
-		# cleanup rows
+		# standardize rows
 		for row in @_rows
 			for val, i in row
 				val ?= ''
 				val = val.trim() if @settings.trim is true
 				row[i] = val
 			row.push '' while row.length < @_columns.length
+
+		# reconcile duplicate columns
+		dup_cols = []
+		for col, cols of @_stats.duplicate_cols
+			dup_cols.push c for c in cols
+			i = @_columns.indexOf(col)
+			for row in @_rows
+				for dup_col in cols
+					j = @_columns.indexOf(dup_col)
+					continue if row[j].trim() is ''
+					if row[i].trim() is '' or row[i].trim() is row[j].trim()
+						row[i] = row[j]
+						row[j] = ''
 
 		# find empty columns
 		empty_cols = []
@@ -322,15 +339,20 @@ module.exports = class CSV
 
 		# drop empty columns
 		for col in empty_cols.slice().reverse()
-			blank_col = col in @_blank_cols
-			continue unless @settings.drop_empty_cols is true or blank_col
-			if blank_col
-				empty_cols.splice(empty_cols.indexOf(col), 1)
-				@_blank_cols.splice(@_blank_cols.indexOf(col), 1)
+			generated = col in @_blank_cols or col in dup_cols
+			continue unless @settings.drop_empty_cols is true or generated
+			if generated
+				@_remove(col, empty_cols, @_blank_cols, dup_cols)
 			else @_stats.dropped_col_count++
 			i = @_columns.indexOf(col)
 			@_columns.splice(i, 1)
 			row.splice(i, 1) for row in @_rows
+
+		# finalize duplicate columns stat
+		for col, cols of @_stats.duplicate_cols
+			for c in cols.slice().reverse()
+				@_remove(c, cols) unless c in dup_cols
+			delete @_stats.duplicate_cols[col] if cols.length is 0
 
 		# stats
 		@_stats.empty_cols = empty_cols
