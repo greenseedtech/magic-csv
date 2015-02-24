@@ -1,3 +1,8 @@
+## 4.4.0
+- Bug fixes in parser logic
+- Improved "bad row" detection
+- Duplicate columns are now preserved
+
 ## 4.3.0
 - Added stat `empty_cols`
 - Renamed stat `cols_dropped` to `dropped_col_count`
