@@ -23,6 +23,9 @@ module.exports = class CSV
 			added_col_count: null
 			dropped_col_count: 0
 			dropped_row_count: 0
+		@_dup_cols = []
+		@_blank_cols = []
+		@_added_cols = []
 
 	getStats: -> @_stats
 	getColCount: -> @_columns.length
@@ -139,12 +142,10 @@ module.exports = class CSV
 		@_init()
 
 		# column name generator
-		generated_col_count = 0
-		getNextColumnName = =>
-			generated_col_count++
-			i = 1
+		getNextColumnName = (name=@settings.default_col_name) =>
+			i = if name in @_columns then 2 else 1
 			loop
-				col_name = "#{@settings.default_col_name} #{i++}"
+				col_name = "#{name} #{i++}"
 				return col_name unless col_name in @_columns
 
 		# detect line ending
@@ -160,7 +161,7 @@ module.exports = class CSV
 		data = data.replace(/\r\n/g, newline_flag) unless line_ending is '\r\n'
 		data = data.split(line_ending)
 		return callback(@_err('Line ending detection failed', 'PARSE')) unless data.length > 1
-		cols = data.shift().trim()
+		cols = data.shift()
 
 		# detect delimiter
 		char_counts = {}
@@ -173,18 +174,24 @@ module.exports = class CSV
 		cols = cols.split(delimiter)
 		return callback(@_err('Delimiter detection failed', 'PARSE')) unless cols.length > 1 or @settings.allow_single_col is true
 		@_stats.delimiter = if cols.length is 1 then 'n/a' else delimiter_types[delimiter]
-		cols.pop() while cols[cols.length - 1] is ''
 		@_columns = cols
 
 		# detect columns
-		for val, i in cols
-			val = val.replace(/^"|"$/g, '').trim()
-			if val is ''
+		cols_found = []
+		for col, i in cols
+			col = col.trim().replace(/^"|"$/g, '').trim()
+			if col is ''
 				cols[i] = getNextColumnName()
-			else cols[i] = val
-		return callback(@_err('Column name detection failed', 'PARSE')) if generated_col_count / cols.length >= .5
-		@_stats.valid_col_count = cols.length
-		@_stats.blank_col_count = generated_col_count
+				@_blank_cols.push cols[i]
+			else
+				if col in cols_found
+					@_dup_cols.push col
+					col = getNextColumnName(col)
+				cols[i] = col
+				cols_found.push col
+		@_stats.valid_col_count = cols_found.length
+		if @_blank_cols.length / cols.length >= .5 and @settings.allow_single_col isnt true
+			return callback(@_err('Column name detection failed', 'PARSE'))
 
 		# parse rows
 		bad_rows = []
@@ -224,13 +231,15 @@ module.exports = class CSV
 				row[i] = val
 
 			# find terminator
-			row.pop() while row.length > cols.length and row[row.length - 1] is ''
-			if seek and row.length isnt cols.length
-				data[line_index + 1] = line + newline_flag + data[line_index + 1] if data[line_index + 1]?
-				continue
+			if seek
+				if row.length - cols.length is 1 and row[row.length - 1] is ''
+					starts.pop()
+				else if row.length isnt cols.length
+					data[line_index + 1] = line + newline_flag + data[line_index + 1] if data[line_index + 1]?
+					continue
 
 			# join quoted fields
-			if starts.length > 0
+			if starts.length > 0 and ends.length > 0
 				new_row = []
 				index = 0
 				for start_index, i in starts
@@ -242,28 +251,32 @@ module.exports = class CSV
 					new_row.push row[i] if row[i]?
 				row = new_row
 			row[i] = val.replace(/""/g, '"') for val, i in row
+			row.pop() while row.length > cols.length and row[row.length - 1] is ''
 
 			# handle bad row
 			allow_row = true
-			if row.length > cols.length
+			if row.length > cols.length or row.length < cols.length - 2
 				bad_rows.push row
 				@_stats.bad_row_indexes.push line_index
-				allow_row = false if @settings.drop_bad_rows is true
+				if @settings.drop_bad_rows is true
+					allow_row = false
+					@_stats.dropped_row_count++
 
 			# add row
 			if allow_row
 				@_rows.push row
 				min_field_count = row.length if not max_field_count? or row.length < min_field_count
 				max_field_count = row.length if row.length > max_field_count
-			else @_stats.dropped_row_count++
 
 		# handle bad rows
-		cols.push getNextColumnName() while max_field_count > cols.length
-		return callback(@_err('Column shifting detected', 'PARSE')) if generated_col_count / cols.length >= .5
-		if bad_rows.length is @_rows.length
+		while max_field_count > cols.length
+			col = getNextColumnName()
+			@_added_cols.push col
+			cols.push col
+		return callback(@_err('Column shifting detected', 'PARSE')) if @_added_cols.length / cols.length >= .5
+		if bad_rows.length > 0 and @_rows.length is 0
 			@_stats.dropped_row_count = 0
 			@_stats.bad_row_indexes.length = 0
-			@_stats.blank_col_count = generated_col_count
 			@_rows = bad_rows if @settings.drop_bad_rows is true
 		if @settings.drop_bad_rows isnt true and max_field_count > min_field_count
 			for row in @_rows
@@ -271,7 +284,6 @@ module.exports = class CSV
 
 		# finalize
 		@_finalize()
-		@_stats.added_col_count = generated_col_count - @_stats.blank_col_count
 		callback(null, @_stats)
 
 	_isArray: (v) -> typeof v is 'object' and v.constructor is Array
@@ -285,6 +297,7 @@ module.exports = class CSV
 
 	_finalize: ->
 
+		# cleanup rows
 		for row in @_rows
 			for val, i in row
 				val ?= ''
@@ -292,27 +305,33 @@ module.exports = class CSV
 				row[i] = val
 			row.push '' while row.length < @_columns.length
 
-		indexes = []
-		for col, i in @_columns
-			vals = @getCol(i)
+		# find empty columns
+		empty_cols = []
+		for col in @_columns
+			vals = @getCol(col)
 			empty = true
 			for val in vals
 				if val.trim() isnt ''
 					empty = false
 					break
-			if empty
-				indexes.push i
-				@_stats.empty_cols.push col
+			empty_cols.push col if empty
 
-		if @settings.drop_empty_cols is true and indexes.length > 0
-			@_stats.dropped_col_count = indexes.length
-			indexes = indexes.reverse()
-			@_columns.splice(i, 1) for i in indexes
-			for row in @_rows
-				row.splice(i, 1) for i in indexes
+		# drop empty columns
+		for col in empty_cols.slice().reverse()
+			blank_col = col in @_blank_cols
+			continue unless @settings.drop_empty_cols is true or blank_col
+			if blank_col
+				empty_cols.splice(empty_cols.indexOf(col), 1)
+				@_blank_cols.splice(@_blank_cols.indexOf(col), 1)
+			else @_stats.dropped_col_count++
+			i = @_columns.indexOf(col)
+			@_columns.splice(i, 1)
+			row.splice(i, 1) for row in @_rows
 
+		# stats
+		@_stats.empty_cols = empty_cols
 		@_stats.col_count ?= @_columns.length
 		@_stats.row_count ?= @_rows.length
 		@_stats.valid_col_count ?= @_columns.length
-		@_stats.blank_col_count ?= 0
-		@_stats.added_col_count ?= 0
+		@_stats.blank_col_count ?= @_blank_cols.length
+		@_stats.added_col_count ?= @_added_cols.length
