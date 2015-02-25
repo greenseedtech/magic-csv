@@ -171,7 +171,8 @@ module.exports = class CSV
 		delimiter = '\t'
 		delimiter = ',' if char_counts.comma > char_counts.tab
 		delimiter = '|' if char_counts.comma < char_counts.pipe > char_counts.tab
-		cols = cols.split(delimiter)
+		col_delimiter = if cols.trim().substr(0, 1) is '"' then '"' + delimiter + '"' else delimiter
+		cols = cols.split(col_delimiter)
 		return callback(@_err('Delimiter detection failed', 'PARSE')) unless cols.length > 1 or @settings.allow_single_col is true
 		@_stats.delimiter = if cols.length is 1 then 'n/a' else delimiter_types[delimiter]
 		@_columns = cols
