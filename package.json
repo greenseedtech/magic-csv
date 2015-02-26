@@ -1,6 +1,6 @@
 {
   "name": "magic-csv",
-  "version": "4.6.2",
+  "version": "5.0.0",
   "description": "Robust CSV parser with format detection",
   "main": "lib/csv.js",
   "scripts": {
