@@ -1,9 +1,14 @@
+## 5.0.0
+- Bug fixes in parsing logic
+- Added option `strict_field_count`
+  - Toggles on automatically if bad rows are detected
+
 ## 4.6.2
 - Bug fix for column names containing the delimiter
 
 ## 4.6.0
 - Improved duplicate column logic
-  - Non-empty fields shift left
+  - Empty fields are filled with non-empty duplicate (if available)
 
 ## 4.5.0
 - Added stat `duplicate_cols`

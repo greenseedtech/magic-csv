@@ -1,4 +1,4 @@
-module.exports = class CSV
+class CSV
 
 	constructor: (@settings={}) ->
 		@_init()
@@ -6,6 +6,7 @@ module.exports = class CSV
 		@settings.drop_bad_rows ?= false
 		@settings.drop_empty_cols ?= false
 		@settings.allow_single_col ?= false
+		@settings.strict_field_count ?= false
 		@settings.default_col_name ?= 'Unknown'
 
 	_init: ->
@@ -98,8 +99,8 @@ module.exports = class CSV
 			callback?()
 
 	readObjects: (data, callback) ->
-		return callback(@_err('Input was not an array of objects', 'INPUT')) unless @_isArray(data) and data.length > 0
-		return callback(@_err("Input at index #{i} was not an object", 'INPUT')) for ob, i in data when not @_isObject(ob)
+		return callback(@_err('Input was not an array of objects', 'INPUT')) unless isArray(data) and data.length > 0
+		return callback(@_err("Input at index #{i} was not an object", 'INPUT')) for ob, i in data when not isObject(ob)
 		@_init()
 
 		# column index finder
@@ -126,19 +127,20 @@ module.exports = class CSV
 			row = []
 			for key, val of ob
 				new_val = ''
-				if @_isObject(val) or @_isArray(val) then new_val = JSON.stringify(val)
+				if isObject(val) or isArray(val) then new_val = JSON.stringify(val)
 				else if typeof val.toString is 'function' then new_val = val.toString()
 				row[@_columns.indexOf(key)] = new_val
 			@_rows.push row
 
 		# finalize
-		@_finalize()
-		@_stats.line_ending = 'n/a'
-		@_stats.delimiter = 'n/a'
-		callback(null, @_stats)
+		@_finalize =>
+			@_stats.line_ending = 'n/a'
+			@_stats.delimiter = 'n/a'
+			callback(null, @_stats)
 
 	parse: (data, callback) ->
 		return callback(@_err('Input was not a string', 'INPUT')) unless typeof data is 'string'
+		@_data = data
 		@_init()
 
 		# column name generator
@@ -202,6 +204,7 @@ module.exports = class CSV
 		bad_rows = []
 		min_field_count = null
 		max_field_count = 0
+		line_seek_count = 0
 		for line, line_index in data
 
 			# parse row
@@ -236,12 +239,16 @@ module.exports = class CSV
 				row[i] = val
 
 			# find terminator
-			if seek
-				if row.length - cols.length is 1 and row[row.length - 1] is ''
+			if seek or @settings.strict_field_count is true
+				if @settings.strict_field_count isnt true and row.length - cols.length is 1 and row[row.length - 1] is ''
 					starts.pop()
+					line_seek_count = 0
 				else if row.length isnt cols.length
+					return callback(@_err('Record terminator not found', 'PARSE')) if line_seek_count++ > 200
 					data[line_index + 1] = line + newline_flag + data[line_index + 1] if data[line_index + 1]?
 					continue
+				else line_seek_count = 0
+			else line_seek_count = 0
 
 			# join quoted fields
 			if starts.length > 0 and ends.length > 0
@@ -283,28 +290,16 @@ module.exports = class CSV
 			@_stats.dropped_row_count = 0
 			@_stats.bad_row_indexes.length = 0
 			@_rows = bad_rows if @settings.drop_bad_rows is true
+		@_stats.dropped_row_count += line_seek_count
 		if @settings.drop_bad_rows isnt true and max_field_count > min_field_count
 			for row in @_rows
 				row.push '' while row.length < max_field_count
 
 		# finalize
-		@_finalize()
-		callback(null, @_stats)
+		@_finalize =>
+			callback(null, @_stats)
 
-	_isArray: (v) -> typeof v is 'object' and v.constructor is Array
-	_isObject: (v) -> typeof v is 'object' and v.constructor is Object
-	_remove: (v, arrays...) ->
-		for arr in arrays
-			i = if typeof v is 'number' then v else arr.indexOf(v)
-			arr.splice(i, 1) if i > -1
-
-	_err: (msg, code) ->
-		@_finalize()
-		e = new Error(msg)
-		e.code = code if code?
-		return e
-
-	_finalize: ->
+	_finalize: (callback) ->
 
 		# standardize rows
 		for row in @_rows
@@ -343,16 +338,16 @@ module.exports = class CSV
 			generated = col in @_blank_cols or col in dup_cols
 			continue unless @settings.drop_empty_cols is true or generated
 			if generated
-				@_remove(col, empty_cols, @_blank_cols, dup_cols)
+				remove(col, empty_cols, @_blank_cols, dup_cols)
 			else @_stats.dropped_col_count++
 			i = @_columns.indexOf(col)
-			@_remove(i, @_columns)
-			@_remove(i, @_rows...)
+			remove(i, @_columns)
+			remove(i, @_rows...)
 
 		# finalize duplicate columns stat
 		for col, cols of @_stats.duplicate_cols
 			for c in cols.slice().reverse()
-				@_remove(c, cols) unless c in dup_cols
+				remove(c, cols) unless c in dup_cols
 			delete @_stats.duplicate_cols[col] if cols.length is 0
 
 		# stats
@@ -362,3 +357,36 @@ module.exports = class CSV
 		@_stats.valid_col_count ?= @_columns.length
 		@_stats.blank_col_count ?= @_blank_cols.length
 		@_stats.added_col_count ?= @_added_cols.length
+
+		# try strict field count
+		return unless callback?
+		return callback() if @_stats.bad_row_indexes.length is 0 or @settings.strict_field_count is true
+		ops = clone(@settings)
+		ops.drop_bad_rows = false
+		ops.strict_field_count = true
+		csv = new CSV(ops)
+		csv.parse @_data, (err, stats) =>
+			return callback() if err? or stats.bad_row_indexes.length > 0 or stats.dropped_row_count > 0
+			@_load(csv)
+			callback()
+
+	_load: (csv) ->
+		@_columns = csv._columns
+		@_rows = csv._rows
+		@_stats = csv._stats
+
+	_err: (msg, code) ->
+		@_finalize()
+		e = new Error(msg)
+		e.code = code if code?
+		return e
+
+module.exports = CSV
+
+clone = (v) -> JSON.parse(JSON.stringify(v))
+isArray = (v) -> typeof v is 'object' and v.constructor is Array
+isObject = (v) -> typeof v is 'object' and v.constructor is Object
+remove = (v, arrays...) ->
+	for arr in arrays
+		i = if typeof v is 'number' then v else arr.indexOf(v)
+		arr.splice(i, 1) if i > -1
