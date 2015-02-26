@@ -242,13 +242,11 @@ class CSV
 			if seek or @settings.strict_field_count is true
 				if @settings.strict_field_count isnt true and row.length - cols.length is 1 and row[row.length - 1] is ''
 					starts.pop()
-					line_seek_count = 0
 				else if row.length isnt cols.length
 					return callback(@_err('Record terminator not found', 'PARSE')) if line_seek_count++ > 200
 					data[line_index + 1] = line + newline_flag + data[line_index + 1] if data[line_index + 1]?
 					continue
-				else line_seek_count = 0
-			else line_seek_count = 0
+			line_seek_count = 0
 
 			# join quoted fields
 			if starts.length > 0 and ends.length > 0
