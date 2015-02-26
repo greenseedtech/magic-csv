@@ -162,7 +162,7 @@ class CSV
 		newline_flag = '{{{magic-csv}}}'
 		data = data.replace(/\r\n/g, newline_flag) unless line_ending is '\r\n'
 		data = data.split(line_ending)
-		return callback(@_err('Line ending detection failed', 'PARSE')) unless data.length > 1
+		return callback(@_err('Line ending detection failed (no rows)')) unless data.length > 1
 		cols = data.shift()
 
 		# detect delimiter
@@ -175,7 +175,7 @@ class CSV
 		delimiter = '|' if char_counts.comma < char_counts.pipe > char_counts.tab
 		col_delimiter = if cols.trim().substr(0, 1) is '"' then '"' + delimiter + '"' else delimiter
 		cols = cols.split(col_delimiter)
-		return callback(@_err('Delimiter detection failed', 'PARSE')) unless cols.length > 1 or @settings.allow_single_col is true
+		return callback(@_err('Delimiter detection failed (no columns)')) unless cols.length > 1 or @settings.allow_single_col is true
 		@_stats.delimiter = if cols.length is 1 then 'n/a' else delimiter_types[delimiter]
 		@_columns = cols
 
@@ -198,7 +198,7 @@ class CSV
 		@_stats.valid_col_count = cols_found.length
 		@_stats.duplicate_cols = dup_cols
 		if @_blank_cols.length / cols.length >= .5 and @settings.allow_single_col isnt true
-			return callback(@_err('Column name detection failed', 'PARSE'))
+			return callback(@_err('Column name detection failed'))
 
 		# parse rows
 		bad_rows = []
@@ -240,10 +240,10 @@ class CSV
 
 			# find terminator
 			if seek or @settings.strict_field_count is true
-				if @settings.strict_field_count isnt true and row.length - cols.length is 1 and row[row.length - 1] is ''
+				if row.length - cols.length is 1 and row[row.length - 1] is '' and @settings.strict_field_count isnt true
 					starts.pop()
 				else if row.length isnt cols.length
-					return callback(@_err('Record terminator not found', 'PARSE')) if line_seek_count++ > 200
+					return callback(@_err('Record terminator not found')) if line_seek_count++ > 200
 					data[line_index + 1] = line + newline_flag + data[line_index + 1] if data[line_index + 1]?
 					continue
 			line_seek_count = 0
@@ -283,7 +283,7 @@ class CSV
 			col = getNextColumnName()
 			@_added_cols.push col
 			cols.push col
-		return callback(@_err('Column shifting detected', 'PARSE')) if @_added_cols.length / cols.length >= .5
+		return callback(@_err('Column shifting detected')) if @_added_cols.length / cols.length >= .5
 		if bad_rows.length > 0 and @_rows.length is 0
 			@_stats.dropped_row_count = 0
 			@_stats.bad_row_indexes.length = 0
@@ -373,10 +373,10 @@ class CSV
 		@_rows = csv._rows
 		@_stats = csv._stats
 
-	_err: (msg, code) ->
+	_err: (msg, code='PARSE') ->
 		@_finalize()
 		e = new Error(msg)
-		e.code = code if code?
+		e.code = code
 		return e
 
 module.exports = CSV
