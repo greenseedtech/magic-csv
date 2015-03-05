@@ -8,6 +8,7 @@ class CSV
 		@settings.allow_single_col ?= false
 		@settings.strict_field_count ?= false
 		@settings.default_col_name ?= 'Unknown'
+		@settings.columns = null unless isArray(@settings.columns)
 
 	_init: ->
 		@_columns = []
@@ -164,6 +165,7 @@ class CSV
 		data = data.split(line_ending)
 		return callback(@_err('Line ending detection failed (no rows)')) unless data.length > 1
 		cols = data.shift()
+		first_row = cols
 
 		# detect delimiter
 		char_counts = {}
@@ -177,6 +179,9 @@ class CSV
 		cols = cols.split(col_delimiter)
 		return callback(@_err('Delimiter detection failed (no columns)')) unless cols.length > 1 or @settings.allow_single_col is true
 		@_stats.delimiter = if cols.length is 1 then 'n/a' else delimiter_types[delimiter]
+		if @settings.columns?
+			cols = @settings.columns
+			data.unshift(first_row)
 		@_columns = cols
 
 		# detect columns
@@ -382,8 +387,12 @@ class CSV
 module.exports = CSV
 
 clone = (v) -> JSON.parse(JSON.stringify(v))
-isArray = (v) -> typeof v is 'object' and v.constructor is Array
-isObject = (v) -> typeof v is 'object' and v.constructor is Object
+isArray = (v) ->
+	return false unless v?
+	typeof v is 'object' and v.constructor is Array
+isObject = (v) ->
+	return false unless v?
+	typeof v is 'object' and v.constructor is Object
 remove = (v, arrays...) ->
 	for arr in arrays
 		i = if typeof v is 'number' then v else arr.indexOf(v)
