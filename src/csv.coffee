@@ -163,7 +163,7 @@ class CSV
 		newline_flag = '{{{magic-csv}}}'
 		data = data.replace(/\r\n/g, newline_flag) unless line_ending is '\r\n'
 		data = data.split(line_ending)
-		return callback(@_err('Line ending detection failed (no rows)')) unless data.length > 1
+		return callback(@_err('Line ending detection failed (no rows)')) unless data.length > 1 or @settings.columns?
 		cols = data.shift()
 		first_row = cols
 
