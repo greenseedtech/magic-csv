@@ -5,6 +5,7 @@ class CSV
 		@settings.trim ?= true
 		@settings.drop_bad_rows ?= false
 		@settings.drop_empty_cols ?= false
+		@settings.drop_duplicate_rows ?= false
 		@settings.allow_single_col ?= false
 		@settings.strict_field_count ?= false
 		@settings.default_col_name ?= 'Unknown'
@@ -360,6 +361,20 @@ class CSV
 		@_stats.valid_col_count ?= @_columns.length
 		@_stats.blank_col_count ?= @_blank_cols.length
 		@_stats.added_col_count ?= @_added_cols.length
+
+		# drop duplicate rows
+		if @settings.drop_duplicate_rows is true
+			rows = []
+			dups = []
+			for ob, i in @getObjects()
+				str = JSON.stringify(ob)
+				if str in rows
+					dups.push i
+				else rows.push str
+			for i in dups.reverse()
+				@_rows.splice(i, 1)
+				@_stats.dropped_row_count++
+				@_stats.row_count--
 
 		# try strict field count
 		return unless callback?

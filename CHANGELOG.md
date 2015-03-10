@@ -1,3 +1,10 @@
+## 5.2.0
+- Added option `drop_duplicate_rows`
+
+## 5.1.0
+- Added option `columns` for specifying column names
+  - Not yet considered a stable feature
+
 ## 5.0.0
 - Bug fixes in parsing logic
 - Added option `strict_field_count`

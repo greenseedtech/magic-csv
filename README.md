@@ -48,6 +48,7 @@ __Options__
   trim: true, // trim values
   drop_bad_rows: false, // drop rows with extra fields
   drop_empty_cols: false, // drop columns with no data
+  drop_duplicate_rows: false, // drop duplicate rows
   allow_single_col: false, // allow input with only one column
   default_col_name: 'Unknown' // name for generated columns
 }
