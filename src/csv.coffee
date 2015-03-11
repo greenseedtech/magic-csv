@@ -366,8 +366,8 @@ class CSV
 		if @settings.drop_duplicate_rows is true
 			rows = []
 			dups = []
-			for ob, i in @getObjects()
-				str = JSON.stringify(ob)
+			for row, i in @_rows
+				str = JSON.stringify(row)
 				if str in rows
 					dups.push i
 				else rows.push str
