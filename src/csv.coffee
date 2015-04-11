@@ -225,7 +225,7 @@ class CSV
 				val = val
 					.replace(/\r/g, '\n')
 					.replace(new RegExp(newline_flag, 'g'), '\n')
-				v = val.trim()
+				v = if val.match(/^ "/)? then ' ' + val.trim() else val.trim()
 				if not seek and (v.match(/^"/)? and not v.match(/^""[^"]/)?) and (not v.match(/"$/)? or v.match(/[^"]""$/)?) and not v.match(/[^"]{1}"[^"]{1}/)?
 					start = true
 					seek = true
@@ -249,7 +249,7 @@ class CSV
 				if row.length - cols.length is 1 and row[row.length - 1] is '' and @settings.strict_field_count isnt true
 					starts.pop()
 				else if row.length isnt cols.length
-					return callback(@_err('Record terminator not found')) if line_seek_count++ > 200
+					return callback(@_err('Field terminator not found')) if line_seek_count++ > 200
 					data[line_index + 1] = line + newline_flag + data[line_index + 1] if data[line_index + 1]?
 					continue
 			line_seek_count = 0
@@ -401,13 +401,17 @@ class CSV
 
 module.exports = CSV
 
+
 clone = (v) -> JSON.parse(JSON.stringify(v))
+
 isArray = (v) ->
 	return false unless v?
 	typeof v is 'object' and v.constructor is Array
+
 isObject = (v) ->
 	return false unless v?
 	typeof v is 'object' and v.constructor is Object
+
 remove = (v, arrays...) ->
 	for arr in arrays
 		i = if typeof v is 'number' then v else arr.indexOf(v)

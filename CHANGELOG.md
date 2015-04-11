@@ -1,3 +1,6 @@
+## 5.2.2
+- Bug fix for fields that begin with ` "`
+
 ## 5.2.0
 - Added option `drop_duplicate_rows`
 
