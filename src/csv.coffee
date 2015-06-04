@@ -12,7 +12,6 @@ class CSV
 		@settings.columns = null unless isArray(@settings.columns)
 
 	_init: ->
-		@_raw = ''
 		@_columns = []
 		@_rows = []
 		@_stats =
