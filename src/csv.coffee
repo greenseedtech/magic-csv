@@ -31,6 +31,7 @@ class CSV
 		@_blank_cols = []
 		@_added_cols = []
 
+	getRaw: -> @_raw
 	getStats: -> @_stats
 	getColCount: -> @_columns.length
 	getRowCount: -> @_rows.length
