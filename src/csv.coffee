@@ -12,6 +12,7 @@ class CSV
 		@settings.columns = null unless isArray(@settings.columns)
 
 	_init: ->
+		@_raw = ''
 		@_columns = []
 		@_rows = []
 		@_stats =
@@ -85,14 +86,14 @@ class CSV
 		@writeToStream(res, callback)
 
 	readFile: (path, callback) ->
-		data = ''
+		@_raw = ''
 		stream = require('fs').createReadStream(path)
-			.on 'data', (chunk) ->
-				data += chunk
+			.on 'data', (chunk) =>
+				@_raw += chunk
 			.on 'error', (err) =>
 				callback?(@_err('Unable to read ' + path, 'READ'))
 			.on 'end', =>
-				@parse data, (err, stats) ->
+				@parse @_raw, (err, stats) ->
 					callback?(err, stats)
 
 	writeToFile: (path, callback) ->

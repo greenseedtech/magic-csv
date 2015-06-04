@@ -1,3 +1,6 @@
+## 5.3.0
+- Added `getRaw()` method
+
 ## 5.2.2
 - Bug fix for fields that begin with ` "`
 
