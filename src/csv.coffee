@@ -286,6 +286,7 @@ class CSV
 				max_field_count = row.length if row.length > max_field_count
 
 		# handle bad rows
+		return callback(@_err('Column shifting detected')) if max_field_count > 10000
 		while max_field_count > cols.length
 			col = getNextColumnName()
 			@_added_cols.push col

@@ -1,3 +1,6 @@
+## 5.3.2
+- Bug fix for nasty infinite loop
+
 ## 5.3.1
 - Added `getRaw()` method
 
