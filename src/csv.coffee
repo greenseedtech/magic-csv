@@ -4,8 +4,9 @@ class CSV
 		@_init()
 		@settings.trim ?= true
 		@settings.drop_bad_rows ?= false
-		@settings.drop_empty_cols ?= false
+		@settings.drop_empty_rows ?= true
 		@settings.drop_duplicate_rows ?= false
+		@settings.drop_empty_cols ?= false
 		@settings.allow_single_col ?= false
 		@settings.strict_field_count ?= false
 		@settings.default_col_name ?= 'Unknown'
@@ -308,12 +309,22 @@ class CSV
 	_finalize: (callback) ->
 
 		# standardize rows
-		for row in @_rows
+		empty_rows = []
+		for row, row_index in @_rows
+			blank = true
 			for val, i in row
 				val ?= ''
 				val = val.trim() if @settings.trim is true
 				row[i] = val
+				blank = false if val.length > 0
+			empty_rows.push row_index if blank is true
 			row.push '' while row.length < @_columns.length
+
+		# drop empty rows
+		if @settings.drop_empty_rows is true
+			for i in empty_rows.reverse()
+				@_stats.dropped_row_count++
+				remove(i, @_rows)
 
 		# reconcile duplicate columns
 		dup_cols = []

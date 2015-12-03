@@ -1,3 +1,6 @@
+## 6.0.0
+- Added option `drop_empty_rows` which defaults to `true`
+
 ## 5.3.2
 - Bug fix for nasty infinite loop
 
