@@ -1,3 +1,7 @@
+## 6.1.0
+- Added semicolon as a valid delimiter
+- Relaxed "Column name detection failed" errors
+
 ## 6.0.0
 - Added option `drop_empty_rows` which defaults to `true`
 

@@ -50,6 +50,7 @@ class CSV
 	getRows: -> @_rows
 	getRow: (i) ->
 		return null unless typeof i is 'number'
+		return null if @getRowCount() is 0
 		i = @getRowCount() + i if i < 0
 		return null unless @_rows[i]?
 		return @_rows[i]
@@ -171,13 +172,13 @@ class CSV
 		first_row = cols
 
 		# detect delimiter
-		char_counts = {}
-		delimiter_types = {',': 'comma', '|': 'pipe', '\t': 'tab'}
+		delimiter_types = {',': 'comma', '|': 'pipe', '\t': 'tab', ';': 'semicolon'}
+		max_char_count = 0
 		for char, name of delimiter_types
-			char_counts[name] = cols.split(char).length - 1
-		delimiter = '\t'
-		delimiter = ',' if char_counts.comma > char_counts.tab
-		delimiter = '|' if char_counts.comma < char_counts.pipe > char_counts.tab
+			count = cols.split(char).length - 1
+			if count > max_char_count
+				delimiter = char
+				max_char_count = count
 		col_delimiter = if cols.trim().substr(0, 1) is '"' then '"' + delimiter + '"' else delimiter
 		cols = cols.split(col_delimiter)
 		return callback(@_err('Delimiter detection failed (no columns)')) unless cols.length > 1 or @settings.allow_single_col is true
@@ -205,8 +206,6 @@ class CSV
 				cols_found.push col
 		@_stats.valid_col_count = cols_found.length
 		@_stats.duplicate_cols = dup_cols
-		if @_blank_cols.length / cols.length >= .5 and @settings.allow_single_col isnt true
-			return callback(@_err('Column name detection failed'))
 
 		# parse rows
 		bad_rows = []
@@ -360,6 +359,10 @@ class CSV
 			i = @_columns.indexOf(col)
 			remove(i, @_columns)
 			remove(i, @_rows...)
+
+		# check for excessive unlabeled columns
+		if @_blank_cols.length / @_columns.length >= .5 and @settings.allow_single_col isnt true
+			return callback(@_err('Column name detection failed'))
 
 		# finalize duplicate columns stat
 		for col, cols of @_stats.duplicate_cols
