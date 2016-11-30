@@ -1,3 +1,7 @@
+## 6.2.0
+- Discovered stability issues with 6.1.0
+  - Reversed "Column name detection failed" logic to 6.0.0
+
 ## 6.1.0
 - Added semicolon as a valid delimiter
 - Relaxed "Column name detection failed" errors

@@ -206,6 +206,8 @@ class CSV
 				cols_found.push col
 		@_stats.valid_col_count = cols_found.length
 		@_stats.duplicate_cols = dup_cols
+		if @_blank_cols.length / cols.length >= .5 and @settings.allow_single_col isnt true
+			return callback(@_err('Column name detection failed'))
 
 		# parse rows
 		bad_rows = []
@@ -359,10 +361,6 @@ class CSV
 			i = @_columns.indexOf(col)
 			remove(i, @_columns)
 			remove(i, @_rows...)
-
-		# check for excessive unlabeled columns
-		if @_blank_cols.length / @_columns.length >= .5 and @settings.allow_single_col isnt true
-			return callback(@_err('Column name detection failed'))
 
 		# finalize duplicate columns stat
 		for col, cols of @_stats.duplicate_cols
