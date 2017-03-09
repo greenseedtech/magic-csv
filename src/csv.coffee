@@ -7,6 +7,7 @@ class CSV
 		@settings.drop_empty_rows ?= true
 		@settings.drop_duplicate_rows ?= false
 		@settings.drop_empty_cols ?= false
+		@settings.disable_seek ?= false
 		@settings.allow_single_col ?= false
 		@settings.strict_field_count ?= false
 		@settings.default_col_name ?= 'Unknown'
@@ -229,19 +230,20 @@ class CSV
 					.replace(/\r/g, '\n')
 					.replace(new RegExp(newline_flag, 'g'), '\n')
 				v = if val.match(/^ "/)? then ' ' + val.trim() else val.trim()
-				if not seek and (v.match(/^"/)? and not v.match(/^""[^"]/)?) and (not v.match(/"$/)? or v.match(/[^"]""$/)?) and not v.match(/[^"]{1}"[^"]{1}/)?
-					start = true
-					seek = true
-					starts.push i
-				if seek and (v.match(/"$/)? and not v.match(/[^"]""$/)?) and (not v.match(/^"/)? or v.match(/^""[^"]/)?)
-					end = true
-					seek = false
-					ends.push i
-				if v in ['"', '"""']
-					if seek
+				if @settings.disable_seek isnt true
+					if not seek and (v.match(/^"/)? and not v.match(/^""[^"]/)?) and (not v.match(/"$/)? or v.match(/[^"]""$/)?) and not v.match(/[^"]{1}"[^"]{1}/)?
+						start = true
+						seek = true
+						starts.push i
+					if seek and (v.match(/"$/)? and not v.match(/[^"]""$/)?) and (not v.match(/^"/)? or v.match(/^""[^"]/)?)
+						end = true
+						seek = false
 						ends.push i
-					else starts.push i
-					seek = not seek
+					if v in ['"', '"""']
+						if seek
+							ends.push i
+						else starts.push i
+						seek = not seek
 				quoted = v.match(/^"/)? and v.match(/"$/)?
 				val = val.replace(/^[\n]*"/, '') if start or quoted
 				val = val.replace(/"[\n]*$/, '') if end or quoted
@@ -252,7 +254,9 @@ class CSV
 				if row.length - cols.length is 1 and row[row.length - 1] is '' and @settings.strict_field_count isnt true
 					starts.pop()
 				else if row.length isnt cols.length
-					return callback(@_err('Field terminator not found')) if line_seek_count++ > 200
+					if line_seek_count++ > 200
+						return @_try {disable_seek: true}, (err) =>
+							callback(if err? then @_err('Field terminator not found') else null)
 					data[line_index + 1] = line + newline_flag + data[line_index + 1] if data[line_index + 1]?
 					continue
 			line_seek_count = 0
@@ -392,15 +396,8 @@ class CSV
 
 		# try strict field count
 		return unless callback?
-		return callback() if @_stats.bad_row_indexes.length is 0 or @settings.strict_field_count is true
-		ops = clone(@settings)
-		ops.drop_bad_rows = false
-		ops.strict_field_count = true
-		csv = new CSV(ops)
-		csv.parse @_data, (err, stats) =>
-			return callback() if err? or stats.bad_row_indexes.length > 0 or stats.dropped_row_count > 0
-			@_load(csv)
-			callback()
+		return callback() if @_stats.bad_row_indexes.length is 0
+		@_try {strict_field_count: true, drop_bad_rows: false}, -> callback()
 
 	_load: (csv) ->
 		@_columns = csv._columns
@@ -412,6 +409,22 @@ class CSV
 		e = new Error(msg)
 		e.code = code
 		return e
+
+	_try: (settings={}, callback) ->
+		same = true
+		for key, val of settings
+			if @settings[key] isnt val
+				same = false
+				break
+		return callback(true) if same
+		ops = clone(@settings)
+		ops[key] = val for key, val of settings
+		csv = new CSV(ops)
+		csv.parse @_data, (err, stats) =>
+			if not err? and stats.bad_row_indexes.length is 0 and stats.dropped_row_count is 0
+				@_load(csv)
+				callback(null)
+			else callback(true)
 
 module.exports = CSV
 

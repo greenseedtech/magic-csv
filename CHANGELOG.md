@@ -1,3 +1,8 @@
+## 7.0.0
+- Added option `disable_seek`
+  - Previously, parsing would fail if a field started with (but did not end with) a quote
+  - This option is an automatic fallback when field termination detection fails
+
 ## 6.2.0
 - Discovered stability issues with 6.1.0
   - Reversed "Column name detection failed" logic to 6.0.0
