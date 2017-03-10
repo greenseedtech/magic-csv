@@ -1,4 +1,4 @@
-## 7.0.1
+## 7.0.2
 - Bug fix for parse method not returning stats
 
 ## 7.0.0

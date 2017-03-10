@@ -96,8 +96,8 @@ class CSV
 			.on 'error', (err) =>
 				callback?(@_err('Unable to read ' + path, 'READ'))
 			.on 'end', =>
-				@parse @_raw, (err) ->
-					callback?(err, @_stats)
+				@parse @_raw, (err, stats) =>
+					callback?(err, stats)
 
 	writeToFile: (path, callback) ->
 		require('fs').writeFile path, @toString(), (err) =>
@@ -145,7 +145,9 @@ class CSV
 			callback()
 
 	parse: (data, callback) ->
-		return callback(@_err('Input was not a string', 'INPUT')) unless typeof data is 'string'
+
+		finish = (err) => callback?(err, @_stats)
+		return finish(@_err('Input was not a string', 'INPUT')) unless typeof data is 'string'
 		@_data = data
 		@_init()
 
@@ -168,7 +170,7 @@ class CSV
 		newline_flag = '{{{magic-csv}}}'
 		data = data.replace(/\r\n/g, newline_flag) unless line_ending is '\r\n'
 		data = data.split(line_ending)
-		return callback(@_err('Line ending detection failed (no rows)')) unless data.length > 1 or @settings.columns?
+		return finish(@_err('Line ending detection failed (no rows)')) unless data.length > 1 or @settings.columns?
 		cols = data.shift()
 		first_row = cols
 
@@ -182,7 +184,7 @@ class CSV
 				max_char_count = count
 		col_delimiter = if cols.trim().substr(0, 1) is '"' then '"' + delimiter + '"' else delimiter
 		cols = cols.split(col_delimiter)
-		return callback(@_err('Delimiter detection failed (no columns)')) unless cols.length > 1 or @settings.allow_single_col is true
+		return finish(@_err('Delimiter detection failed (no columns)')) unless cols.length > 1 or @settings.allow_single_col is true
 		@_stats.delimiter = if cols.length is 1 then 'n/a' else delimiter_types[delimiter]
 		if @settings.columns?
 			cols = @settings.columns
@@ -208,7 +210,7 @@ class CSV
 		@_stats.valid_col_count = cols_found.length
 		@_stats.duplicate_cols = dup_cols
 		if @_blank_cols.length / cols.length >= .5 and @settings.allow_single_col isnt true
-			return callback(@_err('Column name detection failed'))
+			return finish(@_err('Column name detection failed'))
 
 		# parse rows
 		bad_rows = []
@@ -256,7 +258,8 @@ class CSV
 				else if row.length isnt cols.length
 					if line_seek_count++ > 200
 						return @_try {disable_seek: true}, (err) =>
-							callback(if err? then @_err('Field terminator not found') else null)
+							return finish(@_err('Field terminator not found')) if err?
+							finish()
 					data[line_index + 1] = line + newline_flag + data[line_index + 1] if data[line_index + 1]?
 					continue
 			line_seek_count = 0
@@ -292,12 +295,12 @@ class CSV
 				max_field_count = row.length if row.length > max_field_count
 
 		# handle bad rows
-		return callback(@_err('Column shifting detected')) if max_field_count > 10000
+		return finish(@_err('Column shifting detected')) if max_field_count > 10000
 		while max_field_count > cols.length
 			col = getNextColumnName()
 			@_added_cols.push col
 			cols.push col
-		return callback(@_err('Column shifting detected')) if @_added_cols.length / cols.length >= .5
+		return finish(@_err('Column shifting detected')) if @_added_cols.length / cols.length >= .5
 		if bad_rows.length > 0 and @_rows.length is 0
 			@_stats.dropped_row_count = 0
 			@_stats.bad_row_indexes.length = 0
@@ -309,7 +312,7 @@ class CSV
 
 		# finalize
 		@_finalize =>
-			callback(null, @_stats)
+			finish(null, @_stats)
 
 	_finalize: (callback) ->
 
