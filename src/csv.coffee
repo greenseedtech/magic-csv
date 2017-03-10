@@ -96,8 +96,8 @@ class CSV
 			.on 'error', (err) =>
 				callback?(@_err('Unable to read ' + path, 'READ'))
 			.on 'end', =>
-				@parse @_raw, (err, stats) ->
-					callback?(err, stats)
+				@parse @_raw, (err) ->
+					callback?(err, @_stats)
 
 	writeToFile: (path, callback) ->
 		require('fs').writeFile path, @toString(), (err) =>
@@ -142,7 +142,7 @@ class CSV
 		@_finalize =>
 			@_stats.line_ending = 'n/a'
 			@_stats.delimiter = 'n/a'
-			callback(null, @_stats)
+			callback()
 
 	parse: (data, callback) ->
 		return callback(@_err('Input was not a string', 'INPUT')) unless typeof data is 'string'
@@ -420,7 +420,8 @@ class CSV
 		ops = clone(@settings)
 		ops[key] = val for key, val of settings
 		csv = new CSV(ops)
-		csv.parse @_data, (err, stats) =>
+		csv.parse @_data, (err) =>
+			stats = csv.getStats()
 			if not err? and stats.bad_row_indexes.length is 0 and stats.dropped_row_count is 0
 				@_load(csv)
 				callback(null)

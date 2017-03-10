@@ -1,3 +1,6 @@
+## 7.0.1
+- Bug fix for parse method not returning stats
+
 ## 7.0.0
 - Added option `disable_seek`
   - Previously, parsing would fail if a field started with (but did not end with) a quote
